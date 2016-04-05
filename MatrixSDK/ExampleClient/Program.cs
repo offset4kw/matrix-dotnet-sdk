@@ -6,9 +6,9 @@ namespace ExampleClient
 	{
 		public static void Main (string[] args)
 		{
-			MatrixClient client = new MatrixClient ("https://half-shot.uk");
+			MatrixClient client = new MatrixClient ("");
 			client.LoginWithPassword ("", "");
-			MatrixUser user = client.GetUser ("@Half-Shot:half-shot.uk");
+			MatrixUser user = client.GetUser ("");
 		}
 	}
 }

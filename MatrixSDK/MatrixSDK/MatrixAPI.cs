@@ -117,6 +117,19 @@ namespace MatrixSDK
 			}
 			return null;
 		}
+
+		public void Sync(){
+			JObject response;
+			HttpStatusCode code = GetRequest ("client/r0/sync", out response);
+			if (code == HttpStatusCode.OK) {
+
+			}
+		}
+
+		public MatrixRoom GetRoom(string roomid){
+			throw new NotImplementedException ();
+			return null;
+		}
 	}
 }
 

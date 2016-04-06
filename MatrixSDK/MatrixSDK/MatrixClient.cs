@@ -29,11 +29,16 @@ namespace MatrixSDK
 		}
 
 		public void LoginWithPassword(string username,string password){
-			api.Login (new MatrixLoginPassword (username, password));
+			api.ClientLogin (new MatrixLoginPassword (username, password));
+			api.ClientSync ();
 		}
 
 		public MatrixUser GetUser(string user){
-			return api.GetUser (user);
+			MatrixProfile profile = api.ClientProfile (user);
+			if (profile != null) {
+				return new MatrixUser (profile, user);
+			}
+			return null;
 		}
 	}
 }

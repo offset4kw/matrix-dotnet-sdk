@@ -1,12 +1,20 @@
 ﻿using System;
-
+using MatrixSDK.Structures;
 namespace MatrixSDK
 {
 	public class MatrixUser
 	{
-		public string avatar_url;
-		public string displayname;
-		public string userid;
+		public MatrixUser(MatrixProfile Profile,string user){
+			profile = Profile;
+			userid = user;
+		}
+
+		MatrixProfile profile;
+		string userid;
+
+		public string AvatarURL { get { return profile.avatar_url; } }
+		public string DisplayName { get { return profile.displayname; } }
+		public string UserID{ get { return userid; } }
 	}
 }
 

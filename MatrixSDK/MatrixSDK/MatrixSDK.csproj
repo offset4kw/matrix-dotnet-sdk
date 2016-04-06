@@ -7,7 +7,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>MatrixSDK</RootNamespace>
     <AssemblyName>MatrixSDK</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,6 +43,13 @@
     <Compile Include="MatrixUser.cs" />
     <Compile Include="MatrixAPI.cs" />
     <Compile Include="Structures\MatrixLogin.cs" />
+    <Compile Include="Structures\MatrixProfile.cs" />
+    <Compile Include="Structures\MatrixSync.cs" />
+    <Compile Include="Structures\MatrixEvent.cs" />
+    <Compile Include="Structures\MatrixEventRoom.cs" />
+    <Compile Include="JSONEventConverter.cs" />
+    <Compile Include="Structures\Events\MatrixMPresence.cs" />
+    <Compile Include="Structures\Events\MatrixMRoom.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -50,5 +57,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Structures\" />
+    <Folder Include="Structures\Events\" />
   </ItemGroup>
 </Project>

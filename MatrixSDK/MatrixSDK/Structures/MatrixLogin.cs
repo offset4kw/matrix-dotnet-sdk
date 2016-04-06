@@ -1,5 +1,5 @@
 ﻿using System;
-
+using Newtonsoft.Json.Linq;
 namespace MatrixSDK.Structures
 {
 	public abstract class MatrixLogin
@@ -16,8 +16,8 @@ namespace MatrixSDK.Structures
 			password = pass;
 		}
 		public readonly string type = "m.login.password";
-		public string user;
-		public string password;
+		public readonly string user;
+		public readonly string password;
 	}
 
 	/// <summary>

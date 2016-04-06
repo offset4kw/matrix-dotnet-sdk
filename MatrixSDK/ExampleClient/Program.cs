@@ -9,6 +9,7 @@ namespace ExampleClient
 			MatrixClient client = new MatrixClient ("");
 			client.LoginWithPassword ("", "");
 			MatrixUser user = client.GetUser ("");
+
 		}
 	}
 }

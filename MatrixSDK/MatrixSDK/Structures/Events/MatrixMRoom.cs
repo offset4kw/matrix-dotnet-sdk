@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MatrixSDK
+namespace MatrixSDK.Structures
 {
 	public enum EMatrixRoomJoinRules{
 		Public,
@@ -9,25 +9,25 @@ namespace MatrixSDK
 		Private
 	}
 
-	public class MatrixMRoomAliases
+	public class MatrixMRoomAliases : MatrixEventContent
 	{
 		public string[] aliases;
 	}
 
-	public class MatrixMRoomCanonicalAlias{
+	public class MatrixMRoomCanonicalAlias : MatrixEventContent{
 		public string alias;
 	}
 
-	public class MatrixMRoomCreate{
+	public class MatrixMRoomCreate : MatrixEventContent{
 		public bool mfederate = true;
-		public string creator;
+		public string creator;	
 	}
 
-	public class MatrixMRoomJoinRules{
+	public class MatrixMRoomJoinRules : MatrixEventContent{
 		public EMatrixRoomJoinRules join_rule;
 	}
 
-	public class MatrixMRoomMember{
+	public class MatrixMRoomMember : MatrixEventContent{
 			
 	}
 }

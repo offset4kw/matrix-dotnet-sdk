@@ -50,6 +50,8 @@
     <Compile Include="JSONEventConverter.cs" />
     <Compile Include="Structures\Events\MatrixMPresence.cs" />
     <Compile Include="Structures\Events\MatrixMRoom.cs" />
+    <Compile Include="Structures\Events\MatrixMRoomMessage.cs" />
+    <Compile Include="Structures\MatrixFileInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

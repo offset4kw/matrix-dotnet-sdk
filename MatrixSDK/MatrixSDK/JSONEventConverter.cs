@@ -10,7 +10,12 @@ namespace MatrixSDK
 	{
 
 		Dictionary<string,Type> contentTypes = new Dictionary<string, Type>{
-			{"m.presence",typeof(MatrixMPresence)}
+			{"m.presence",	typeof(MatrixMPresence)},
+			{"m.notice",	typeof(MMessageNotice)},
+			{"m.text",		typeof(MMessageText)},
+			{"m.emote",		typeof(MMessageEmote)},
+			{"m.image",		typeof(MMessageImage)},
+			{"m.file",		typeof(MMessageFile)}
 		};
 
 		public JsonEventConverter(Dictionary<string,Type> customMsgTypes = null){

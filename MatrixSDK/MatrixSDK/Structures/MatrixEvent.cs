@@ -23,7 +23,7 @@ namespace MatrixSDK.Structures
 
 	public class MatrixEventUnsigned{
 		public MatrixEventUnsigned prev_content;
-		public int age;
+		public Int64 age;
 		public string transaction_id;
 	}
 	/// <summary>

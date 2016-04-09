@@ -10,12 +10,27 @@ namespace MatrixSDK
 	{
 
 		Dictionary<string,Type> contentTypes = new Dictionary<string, Type>{
-			{"m.presence",	typeof(MatrixMPresence)},
-			{"m.notice",	typeof(MMessageNotice)},
+			{"m.presence",					typeof(MatrixMPresence)},
+			{"m.receipt",					typeof(MatrixMReceipt)}, //*Special case below
+			{"m.room.message",				typeof(MatrixMRoomMessage)},
+			{"m.room.member",				typeof(MatrixMRoomMember)},
+			{"m.room.create",				typeof(MatrixMRoomCreate)},
+			{"m.room.join_rules",			typeof(MatrixMRoomJoinRules)},
+			{"m.room.aliases",				typeof(MatrixMRoomAliases)},
+			{"m.room.canonical_alias", 		typeof(MatrixMRoomCanonicalAlias)},
+			{"m.room.name", 				typeof(MatrixMRoomName)},
+			{"m.room.topic", 				typeof(MatrixMRoomTopic)},
+			{"m.room.power_levels", 		typeof(MatrixMRoomPowerLevels)},
+			{"m.room.history_visibility",	typeof(MatrixMRoomHistoryVisibility)}
+		};
+
+		Dictionary<string,Type> messageContentTypes = new Dictionary<string, Type>{
 			{"m.text",		typeof(MMessageText)},
+			{"m.notice",	typeof(MMessageNotice)},
 			{"m.emote",		typeof(MMessageEmote)},
 			{"m.image",		typeof(MMessageImage)},
-			{"m.file",		typeof(MMessageFile)}
+			{"m.file",		typeof(MMessageFile)},
+			{"m.location",	typeof(MMessageLocation)},
 		};
 
 		public JsonEventConverter(Dictionary<string,Type> customMsgTypes = null){
@@ -35,13 +50,33 @@ namespace MatrixSDK
 			return objectType == typeof(MatrixEvent);
 		}
 
-		public MatrixEventContent GetContent(JsonReader reader,JsonSerializer serializer,string type){
+		public Type MessageContentType(string type){
+			Type otype;
+			if (messageContentTypes.TryGetValue (type, out otype)) {
+				return otype;
+			} else {
+				Console.WriteLine ("Unknown Message Type:" + type);
+			}
+			return typeof(MatrixMRoomMessage);
+		}
+
+		public MatrixEventContent GetContent(JToken jobj,JsonSerializer serializer,string type){
 			Type T;
 			if (contentTypes.TryGetValue (type, out T)) {
+				if (T == typeof(MatrixMRoomMessage)) {
+					MatrixMRoomMessage message = new MatrixMRoomMessage ();
+					serializer.Populate (jobj.CreateReader (), message);
+					T = MessageContentType (message.msgtype);
+				}
 				MatrixEventContent content = (MatrixEventContent)Activator.CreateInstance(T);
-				serializer.Populate (reader, content);
+				if (type == "m.receipt") {
+					((MatrixMReceipt)content).ParseJObject((JObject)jobj);
+				} else {
+					serializer.Populate (jobj.CreateReader (), content);
+				}
 				return content;
 			} else {
+				Console.WriteLine ("Unknown Event:" + type);
 				return new MatrixEventContent();
 			}
 		}
@@ -56,8 +91,7 @@ namespace MatrixSDK
 			// Populate the event itself
 			MatrixEvent ev = new MatrixEvent();
 			serializer.Populate (jObject.CreateReader (), ev);
-			//Get the correct content type.
-			ev.content = GetContent (jObject ["content"].CreateReader (), serializer, ev.type);
+			ev.content = GetContent (jObject ["content"], serializer, ev.type);
 			return ev;
 		}
 

@@ -52,6 +52,11 @@
     <Compile Include="Structures\Events\MatrixMRoom.cs" />
     <Compile Include="Structures\Events\MatrixMRoomMessage.cs" />
     <Compile Include="Structures\MatrixFileInfo.cs" />
+    <Compile Include="Structures\Events\MatrixMRoomMember.cs" />
+    <Compile Include="Structures\MatrixInvite.cs" />
+    <Compile Include="Structures\MatrixStrippedState.cs" />
+    <Compile Include="Structures\Events\MatrixMRoomPowerLevels.cs" />
+    <Compile Include="Structures\Events\MatrixMReceipt.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

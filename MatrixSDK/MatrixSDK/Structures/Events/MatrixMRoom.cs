@@ -9,6 +9,13 @@ namespace MatrixSDK.Structures
 		Private
 	}
 
+	public enum EMatrixRoomHistoryVisibility{
+		Invited,
+		Joined,
+		Shared,
+		World_Readable
+	}
+
 	public class MatrixMRoomAliases : MatrixEventContent
 	{
 		public string[] aliases;
@@ -27,8 +34,16 @@ namespace MatrixSDK.Structures
 		public EMatrixRoomJoinRules join_rule;
 	}
 
-	public class MatrixMRoomMember : MatrixEventContent{
-			
+	public class MatrixMRoomName : MatrixEventContent{
+		public string name;
+	}
+
+	public class MatrixMRoomTopic : MatrixEventContent{
+		public string topic;
+	}
+
+	public class MatrixMRoomHistoryVisibility : MatrixEventContent{
+		public EMatrixRoomHistoryVisibility history_visibility;
 	}
 }
 

@@ -11,9 +11,12 @@ namespace MatrixSDK.Structures
 		public Int64 origin_server_ts;
 		public string sender;
 		public string type;
+		public string event_id;
 		public string room_id;
 		public MatrixEventUnsigned unsigned;
 		public string state_key;
+		// Special case for https://matrix.org/docs/spec/r0.0.1/client_server.html#m-room-member
+		public MatrixStrippedState[] invite_room_state;
 
 		public MatrixEvent ()
 		{

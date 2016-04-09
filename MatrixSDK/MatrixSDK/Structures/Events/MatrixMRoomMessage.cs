@@ -2,28 +2,28 @@
 
 namespace MatrixSDK.Structures
 {
-	public class MRoomMessage : MatrixEventContent
+	public class MatrixMRoomMessage : MatrixEventContent
 	{
-		public virtual string msgtype { get { return null; }}
+		public virtual string msgtype { get; set;}
 		public string body;
 	}
 		
-	public class MMessageNotice : MRoomMessage
+	public class MMessageNotice : MatrixMRoomMessage
 	{
 		public override string msgtype { get { return "m.notice"; }}
 	}
 
-	public class MMessageText : MRoomMessage
+	public class MMessageText : MatrixMRoomMessage
 	{
 		public override string msgtype { get { return "m.text"; }}
 	}
 
-	public class MMessageEmote : MRoomMessage
+	public class MMessageEmote : MatrixMRoomMessage
 	{
 		public override string msgtype { get { return "m.emote"; }}
 	}
 
-	public class MMessageImage : MRoomMessage
+	public class MMessageImage : MatrixMRoomMessage
 	{
 		public override string msgtype { get { return "m.image"; }}
 		public MatrixImageInfo info;
@@ -32,7 +32,7 @@ namespace MatrixSDK.Structures
 		public string thumbnail_url;
 	}
 
-	public class MMessageFile : MRoomMessage
+	public class MMessageFile : MatrixMRoomMessage
 	{
 		public override string msgtype { get { return "m.file"; }}
 		public MatrixFileInfo info;
@@ -42,7 +42,7 @@ namespace MatrixSDK.Structures
 		public string filename;
 	}
 
-	public class MMessageLocation : MRoomMessage{
+	public class MMessageLocation : MatrixMRoomMessage{
 		public override string msgtype { get { return "m.location"; }}
 		public string geo_url;
 		public string thumbnail_url;

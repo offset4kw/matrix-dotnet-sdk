@@ -8,7 +8,7 @@ namespace MatrixSDK.Structures
 	/// </summary>
 	public class MatrixSync
 	{
-		public readonly string next_batch;
+		public string next_batch;
 		public MatrixSyncEvents account_data;
 		public MatrixSyncEvents presence;
 		public MatrixSyncRooms rooms;
@@ -21,7 +21,7 @@ namespace MatrixSDK.Structures
 	public class MatrixSyncRooms{
 		public Dictionary<string,MatrixEventRoomInvited> invite;
 		public Dictionary<string,MatrixEventRoomJoined> join;
-		public Dictionary<string,MatrixEventRoomLeft> leave;	
+		public Dictionary<string,MatrixEventRoomLeft> leave;
 	}
 }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using MatrixSDK.Exceptions;
 using MatrixSDK.Structures;
+using System.Linq;
 namespace MatrixSDK
 {
 	public class MatrixClient
@@ -31,6 +32,7 @@ namespace MatrixSDK
 		public void LoginWithPassword(string username,string password){
 			api.ClientLogin (new MatrixLoginPassword (username, password));
 			api.ClientSync ();
+			api.StartSyncThreads ();
 		}
 
 		public MatrixUser GetUser(string user){
@@ -39,6 +41,30 @@ namespace MatrixSDK
 				return new MatrixUser (profile, user);
 			}
 			return null;
+		}
+
+		public MatrixRoom[] GetAllRooms(){
+			return api.GetRooms ();
+		}
+
+
+
+		public MatrixRoom GetRoom(string roomid){
+			return api.GetRoom (roomid);
+		}
+
+		public MatrixRoom GetRoomByAlias(string alias){
+			MatrixRoom room = api.GetRooms ().FirstOrDefault( x => {
+				if(x.Aliases != null){
+					return x.Aliases.Contains(alias);
+				}
+				return false;
+			});
+			if (room != default(MatrixRoom)) {
+				return room;
+			} else {
+				return null;
+			}
 		}
 	}
 }

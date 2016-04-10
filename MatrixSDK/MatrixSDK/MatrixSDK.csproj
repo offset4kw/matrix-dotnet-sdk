@@ -57,6 +57,7 @@
     <Compile Include="Structures\MatrixStrippedState.cs" />
     <Compile Include="Structures\Events\MatrixMRoomPowerLevels.cs" />
     <Compile Include="Structures\Events\MatrixMReceipt.cs" />
+    <Compile Include="Structures\MatrixCreateRoom.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -44,4 +44,11 @@ namespace MatrixSDK.Exceptions
 		}
 
 	}
+
+	public class MatrixBadFormatException : MatrixException {
+		public MatrixBadFormatException(string value,string type,string reason) : base(String.Format("Value \"{0}\" is not valid for type {1}, Reason: {2}",value,type,reason)){
+
+		}
+	}
+
 }

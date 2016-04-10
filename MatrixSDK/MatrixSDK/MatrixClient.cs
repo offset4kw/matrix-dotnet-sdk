@@ -47,9 +47,23 @@ namespace MatrixSDK
 			return api.GetRooms ();
 		}
 
+		public MatrixRoom CreateRoom(MatrixCreateRoom roomdetails = null){
+			return api.CreateRoom (roomdetails);
+		}
 
+		public MatrixRoom CreateRoom(string name, string alias = null,string topic = null){
+			MatrixCreateRoom room = new MatrixCreateRoom ();
+			room.name = name;
+			room.room_alias_name = alias;
+			room.topic = topic;
+			return api.CreateRoom (room);
+		}
 
-		public MatrixRoom GetRoom(string roomid){
+		public MatrixRoom JoinRoom(string roomid){//TODO: Maybe add a try method.
+			return api.JoinRoom (roomid);
+		}
+		//TODO: GetRoom could be rephrased
+		public MatrixRoom GetRoom(string roomid){//TODO: Maybe add a try method.
 			return api.GetRoom (roomid);
 		}
 

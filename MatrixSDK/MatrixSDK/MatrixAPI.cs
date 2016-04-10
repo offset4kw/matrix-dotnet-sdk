@@ -25,8 +25,8 @@ namespace MatrixSDK
 		MatrixLoginResponse current_login = null;
 		Thread poll_thread;
 		bool shouldRun = false;
-		Dictionary<string,MatrixRoom> rooms = new Dictionary<string,MatrixRoom>();
-		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages = new ConcurrentQueue<MatrixAPIPendingEvent> ();
+		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
+		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
 
 		/// <summary>
@@ -97,7 +97,12 @@ namespace MatrixSDK
 		}
 
 		private HttpStatusCode PostRequest(string apiPath, bool authenticate, JObject data, out JObject result){
-			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
+			StringContent content;
+			if (data != null) {
+				content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
+			} else {
+				content = new StringContent ("{}");
+			}
 			if(authenticate){
 				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
 			}
@@ -127,7 +132,6 @@ namespace MatrixSDK
 				throw new MatrixException (e.InnerException.Message,e.InnerException);
 			}
 			if (stask.Status == TaskStatus.RanToCompletion) {
-				System.IO.File.WriteAllText ("/tmp/sync.json", stask.Result);
 				result = JObject.Parse (stask.Result);
 				if (result ["errcode"] != null) {
 					throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
@@ -188,14 +192,16 @@ namespace MatrixSDK
 			syncToken = syncData.next_batch;
 			//Grab data from rooms the user has joined.
 			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join) {
-				if (rooms.ContainsKey (room.Key)) {
+				MatrixRoom mroom;
+				if (!rooms.ContainsKey (room.Key)) {
+					mroom = new MatrixRoom (this, room.Key);
+					rooms.TryAdd (room.Key, mroom);
 					//Update existing room
 				} else {
-					MatrixRoom mroom = new MatrixRoom (this,room.Key);
-					room.Value.state.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
-					room.Value.timeline.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
-					rooms.Add (room.Key, mroom);
+					mroom = rooms [room.Key];
 				}
+				room.Value.state.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
+				room.Value.timeline.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
 			}
 		}
 
@@ -209,9 +215,26 @@ namespace MatrixSDK
 			}
 		}
 
+		public MatrixRoom JoinRoom(string roomid){
+			JObject result;
+			HttpStatusCode code = PostRequest(String.Format("/_matrix/client/r0/join/{0}",System.Uri.EscapeDataString(roomid)),true,null,out result);
+			if (code == HttpStatusCode.OK) {
+				roomid = result ["room_id"].ToObject<string> ();
+				if (!rooms.ContainsKey (roomid)) {
+					MatrixRoom room = new MatrixRoom (this, roomid);
+					rooms.TryAdd (room.ID, room);
+					return room;
+				} else {
+					return rooms [roomid];
+				}
+			} else {
+				return null;
+			}
+				
+		}
 
 		public MatrixRoom GetRoom(string roomid){
-			if (rooms.ContainsKey (roomid)) { //TODO: Find room by alias or name
+			if (rooms.ContainsKey (roomid)) {
 				return rooms [roomid];
 			} else {
 				return null;
@@ -221,6 +244,23 @@ namespace MatrixSDK
 
 		public MatrixRoom[] GetRooms(){
 			return rooms.Values.ToArray ();
+		}
+
+		public MatrixRoom CreateRoom(MatrixCreateRoom roomrequest = null){
+			JObject result;
+			JObject req = null;
+			if (roomrequest != null) {
+				req = JObject.FromObject (roomrequest);
+			}
+			HttpStatusCode code = PostRequest ("/_matrix/client/r0/createRoom", true, req, out result);
+			if (code == HttpStatusCode.OK) {
+				string roomid = result ["room_id"].ToObject<string> ();
+				MatrixRoom room = new MatrixRoom (this,roomid);
+				rooms.TryAdd (roomid, room);
+				return room;
+			} else {
+				return null;
+			}
 		}
 
 		public void QueueRoomMessage(string roomid,string type,MatrixMRoomMessage message){

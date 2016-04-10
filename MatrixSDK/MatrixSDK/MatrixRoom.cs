@@ -52,6 +52,18 @@ namespace MatrixSDK
 			}
 		}
 
+		public void SetName(string newName){
+			MatrixMRoomName nameEvent = new MatrixMRoomName ();
+			nameEvent.name = newName;
+			api.SendStateMessage (ID, "m.room.name", nameEvent); 
+		}
+
+		public void SetTopic(string newTopic){
+			MatrixMRoomTopic topicEvent = new MatrixMRoomTopic ();
+			topicEvent.topic = newTopic;
+			api.SendStateMessage (ID, "m.room.topic", topicEvent);
+		}
+
 		public void SendMessage(MatrixMRoomMessage message){
 			api.QueueRoomMessage (ID, "m.room.message", message);
 		}
@@ -60,6 +72,14 @@ namespace MatrixSDK
 			MMessageText message = new MMessageText ();
 			message.body = body;
 			SendMessage (message);
+		}
+
+		public void InviteToRoom(string userid){
+			api.InviteToRoom (ID, userid);
+		}
+
+		public void InviteToRoom(MatrixUser user){
+			InviteToRoom (user.UserID);
 		}
 
 	}

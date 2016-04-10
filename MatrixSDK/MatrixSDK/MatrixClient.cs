@@ -4,7 +4,7 @@ using MatrixSDK.Structures;
 using System.Linq;
 namespace MatrixSDK
 {
-	public class MatrixClient
+	public class MatrixClient : IDisposable
 	{
 		MatrixAPI api;
 
@@ -79,6 +79,10 @@ namespace MatrixSDK
 			} else {
 				return null;
 			}
+		}
+
+		public void Dispose(){
+			api.StopSyncThreads ();
 		}
 	}
 }

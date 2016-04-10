@@ -78,6 +78,11 @@ namespace MatrixSDK
 
 		}
 
+		public void StopSyncThreads(){
+			shouldRun = false;
+			poll_thread.Join ();
+		}
+
 		private bool acceptCertificate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors){
 			return true;//Find a better way to handle mono certs.
 		}
@@ -273,6 +278,19 @@ namespace MatrixSDK
 			} else {
 				return null;
 			}
+		}
+
+		public void SendStateMessage(string roomid,string type,MatrixRoomStateEvent message){
+			JObject msgData = JObject.FromObject (message);
+			JObject result;
+			HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+		}
+
+		public void InviteToRoom(string roomid, string userid){
+			JObject result;
+			JObject msgData = JObject.FromObject(new {user_id=userid});
+			HttpStatusCode code = PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
+
 		}
 
 		public void QueueRoomMessage(string roomid,string type,MatrixMRoomMessage message){

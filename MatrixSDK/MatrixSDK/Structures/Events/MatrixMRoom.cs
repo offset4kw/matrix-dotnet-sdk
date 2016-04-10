@@ -16,33 +16,37 @@ namespace MatrixSDK.Structures
 		World_Readable
 	}
 
-	public class MatrixMRoomAliases : MatrixEventContent
+	public class MatrixRoomStateEvent : MatrixEventContent{
+
+	}
+
+	public class MatrixMRoomAliases : MatrixRoomStateEvent
 	{
 		public string[] aliases;
 	}
 
-	public class MatrixMRoomCanonicalAlias : MatrixEventContent{
+	public class MatrixMRoomCanonicalAlias : MatrixRoomStateEvent{
 		public string alias;
 	}
 
-	public class MatrixMRoomCreate : MatrixEventContent{
+	public class MatrixMRoomCreate : MatrixRoomStateEvent{
 		public bool mfederate = true;
 		public string creator;	
 	}
 
-	public class MatrixMRoomJoinRules : MatrixEventContent{
+	public class MatrixMRoomJoinRules : MatrixRoomStateEvent{
 		public EMatrixRoomJoinRules join_rule;
 	}
 
-	public class MatrixMRoomName : MatrixEventContent{
+	public class MatrixMRoomName : MatrixRoomStateEvent{
 		public string name;
 	}
 
-	public class MatrixMRoomTopic : MatrixEventContent{
+	public class MatrixMRoomTopic : MatrixRoomStateEvent{
 		public string topic;
 	}
 
-	public class MatrixMRoomHistoryVisibility : MatrixEventContent{
+	public class MatrixMRoomHistoryVisibility : MatrixRoomStateEvent{
 		public EMatrixRoomHistoryVisibility history_visibility;
 	}
 }

@@ -6,7 +6,7 @@ using Newtonsoft.Json.Converters;
 using MatrixSDK.Structures;
 namespace MatrixSDK
 {
-	public class JsonEventConverter : JsonConverter
+	public class JSONEventConverter : JsonConverter
 	{
 
 		Dictionary<string,Type> contentTypes = new Dictionary<string, Type>{
@@ -33,7 +33,7 @@ namespace MatrixSDK
 			{"m.location",	typeof(MMessageLocation)},
 		};
 
-		public JsonEventConverter(Dictionary<string,Type> customMsgTypes = null){
+		public JSONEventConverter(Dictionary<string,Type> customMsgTypes = null){
 			if (customMsgTypes != null) {
 				foreach (KeyValuePair<string,Type> item in customMsgTypes) {
 					if (contentTypes.ContainsKey (item.Key)) {
@@ -93,6 +93,12 @@ namespace MatrixSDK
 			serializer.Populate (jObject.CreateReader (), ev);
 			ev.content = GetContent (jObject ["content"], serializer, ev.type);
 			return ev;
+		}
+
+		public override bool CanWrite {
+			get {
+				return false;
+			}
 		}
 
 		public override void WriteJson(JsonWriter writer, 

@@ -62,6 +62,10 @@ namespace MatrixSDK
 			SendMessage (message);
 		}
 
+		public void ApplyNewPowerLevels(MatrixMRoomPowerLevels powerlevels){
+			api.SetRoomPowerLevels (ID,powerlevels);
+		}
+
 	}
 }
 

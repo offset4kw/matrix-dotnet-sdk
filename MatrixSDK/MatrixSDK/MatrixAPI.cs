@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using System.Linq;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -29,6 +30,8 @@ namespace MatrixSDK
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
 
+		JSONSerializer matrixSerializer;
+
 		/// <summary>
 		/// Timeout in seconds between sync requests.
 		/// </summary>
@@ -36,8 +39,8 @@ namespace MatrixSDK
 
 		public MatrixAPI (string URL)
 		{
-			ServicePointManager.MaxServicePoints = 10;
 			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
+			matrixSerializer = new JSONSerializer ();
 			baseurl = URL;
 			if (!URL.Contains ("/_matrix/")) {
 				baseurl += "/_matrix/";
@@ -140,6 +143,15 @@ namespace MatrixSDK
 			return task.Result.StatusCode;
 			
 		}
+
+		public JObject ObjectToJson(object data){
+			JObject container;
+			using(JTokenWriter writer = new JTokenWriter()){
+				matrixSerializer.Serialize(writer,data);
+				container = (JObject)writer.Token;
+			}
+			return container;
+		}
 			
 		public static bool IsVersionSupported(string[] version){
 			return (new List<string> (version).Contains (VERSION));//TODO: Support version checking properly.
@@ -179,7 +191,7 @@ namespace MatrixSDK
 			if (code == HttpStatusCode.OK) {
 				try
 				{
-					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (),new JsonEventConverter()	);
+					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (),new JSONEventConverter()	);
 					processSync(sync);
 				}
 				catch(Exception e){
@@ -250,7 +262,7 @@ namespace MatrixSDK
 			JObject result;
 			JObject req = null;
 			if (roomrequest != null) {
-				req = JObject.FromObject (roomrequest);
+				req = ObjectToJson(roomrequest);
 			}
 			HttpStatusCode code = PostRequest ("/_matrix/client/r0/createRoom", true, req, out result);
 			if (code == HttpStatusCode.OK) {
@@ -277,7 +289,7 @@ namespace MatrixSDK
 		}
 
 		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
-			JObject msgData = JObject.FromObject (msg.content);
+			JObject msgData = ObjectToJson (msg.content);
 			JObject result;
 			try
 			{
@@ -288,8 +300,6 @@ namespace MatrixSDK
 				Console.WriteLine ("Exception occured sending message: " + e.Message);
 				return false;
 			}
-
-			return true;
 		}
 
 	}

@@ -1,6 +1,6 @@
 ﻿using System;
 using MatrixSDK.Exceptions;
-namespace MatrixSDK
+namespace MatrixSDK.Structures
 {
 	public class MatrixCreateRoom
 	{
@@ -25,14 +25,15 @@ namespace MatrixSDK
 		//TODO: Add	preset
 		//TODO: Add creation_content
 		//TODO: Add initial_state
+		private string _room_alias_name;
 		public string room_alias_name {
-			get { return room_alias_name; }
+			get { return _room_alias_name; }
 			set
 			{
 				if (value.Contains ("#") || value.Contains(":")) {
 					throw new MatrixBadFormatException (value, "local alias", "a local alias must not contain : or #");
 				}
-				room_alias_name = value;
+				_room_alias_name = value;
 			}
 		}
 	}

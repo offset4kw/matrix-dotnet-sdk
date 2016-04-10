@@ -31,6 +31,8 @@
     <Reference Include="System" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Package>monodevelop</Package>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Net.Http" />
@@ -58,6 +60,7 @@
     <Compile Include="Structures\Events\MatrixMRoomPowerLevels.cs" />
     <Compile Include="Structures\Events\MatrixMReceipt.cs" />
     <Compile Include="Structures\MatrixCreateRoom.cs" />
+    <Compile Include="JSONSerializer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

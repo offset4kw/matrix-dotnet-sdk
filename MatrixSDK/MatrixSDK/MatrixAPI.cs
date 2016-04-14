@@ -283,13 +283,13 @@ namespace MatrixSDK
 		public void SendStateMessage(string roomid,string type,MatrixRoomStateEvent message){
 			JObject msgData = JObject.FromObject (message);
 			JObject result;
-			HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+			PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
 		}
 
 		public void InviteToRoom(string roomid, string userid){
 			JObject result;
 			JObject msgData = JObject.FromObject(new {user_id=userid});
-			HttpStatusCode code = PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
+			PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
 
 		}
 

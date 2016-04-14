@@ -29,7 +29,7 @@ namespace MatrixSDK
 		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
-
+		public bool RunningInitialSync { get; private set; }
 		JSONSerializer matrixSerializer;
 
 		/// <summary>
@@ -48,6 +48,7 @@ namespace MatrixSDK
 			client = new HttpClient ();
 			client.BaseAddress = new Uri (baseurl);
 			rng = new Random (DateTime.Now.Millisecond);
+			RunningInitialSync = true;
 		}
 
 		private void pollThread_Run(){
@@ -179,9 +180,15 @@ namespace MatrixSDK
 
 		public MatrixProfile ClientProfile(string userid){
 			JObject response;
-			HttpStatusCode code = GetRequest ("client/r0/profile/" + userid,true, out response);
-			if (code == HttpStatusCode.OK) {
-				return response.ToObject<MatrixProfile> ();
+			try
+			{
+				HttpStatusCode code = GetRequest ("client/r0/profile/" + userid,true, out response);
+				if (code == HttpStatusCode.OK) {
+					return response.ToObject<MatrixProfile> ();
+				}
+			}
+			catch(MatrixServerError){
+				return null;
 			}
 			return null;
 		}
@@ -203,6 +210,8 @@ namespace MatrixSDK
 					throw new MatrixException ("Could not decode sync", e);
 				}
 			}
+			if (RunningInitialSync)
+				RunningInitialSync = false;
 		}
 
 		private void processSync(MatrixSync syncData){
@@ -250,6 +259,11 @@ namespace MatrixSDK
 				
 		}
 
+		public void LeaveRoom(string roomid){
+			JObject result;
+			PostRequest(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
+		}
+
 		public MatrixRoom GetRoom(string roomid){
 			if (rooms.ContainsKey (roomid)) {
 				return rooms [roomid];
@@ -283,13 +297,13 @@ namespace MatrixSDK
 		public void SendStateMessage(string roomid,string type,MatrixRoomStateEvent message){
 			JObject msgData = JObject.FromObject (message);
 			JObject result;
-			HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+			PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
 		}
 
 		public void InviteToRoom(string roomid, string userid){
 			JObject result;
 			JObject msgData = JObject.FromObject(new {user_id=userid});
-			HttpStatusCode code = PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
+			PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
 
 		}
 

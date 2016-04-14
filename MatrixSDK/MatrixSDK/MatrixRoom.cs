@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using MatrixSDK.Structures;
 namespace MatrixSDK
 {
+	public delegate void MatrixEventDelegate(MatrixRoom room,MatrixEvent evt);
 	public class MatrixRoom
 	{
+
 		const int MESSAGE_CAPACITY = 255;
 		public readonly string ID;
 		public string Name { get; private set; }
@@ -15,6 +17,9 @@ namespace MatrixSDK
 		public string[] Aliases { get; private set; }
 		public EMatrixRoomJoinRules JoinRule { get; private set; }
 		public MatrixMRoomPowerLevels PowerLevels { get; private set; } //TODO: Implement this inside this class
+		public event MatrixEventDelegate OnMessage;
+		public event MatrixEventDelegate OnEvent;
+		public int OnMessageMaximumAge = 5000;
 
 		private List<MatrixMRoomMessage> messages = new List<MatrixMRoomMessage>(MESSAGE_CAPACITY);
 		public MatrixMRoomMessage[] Messages { get { return messages.ToArray (); } }
@@ -49,6 +54,15 @@ namespace MatrixSDK
 				PowerLevels = ((MatrixMRoomPowerLevels)evt.content);
 			} else if (t.IsSubclassOf(typeof(MatrixMRoomMessage))) {
 				messages.Add ((MatrixMRoomMessage)evt.content);
+				if (OnMessage != null ) {
+					if(OnMessageMaximumAge == 0 || evt.age < OnMessageMaximumAge )
+					OnMessage.Invoke (this, evt);
+					return;
+				}
+			}
+
+			if (OnEvent != null) {
+				OnEvent.Invoke (this, evt);
 			}
 		}
 
@@ -75,7 +89,7 @@ namespace MatrixSDK
 		}
 
 		public void ApplyNewPowerLevels(MatrixMRoomPowerLevels powerlevels){
-			//api.SetRoomPowerLevels (ID,powerlevels);
+			api.SendStateMessage (ID,"m.room.power_levels",powerlevels);
 		}
 		public void InviteToRoom(string userid){
 			api.InviteToRoom (ID, userid);
@@ -83,6 +97,10 @@ namespace MatrixSDK
 
 		public void InviteToRoom(MatrixUser user){
 			InviteToRoom (user.UserID);
+		}
+
+		public void LeaveRoom(){
+			api.LeaveRoom (ID);
 		}
 
 	}

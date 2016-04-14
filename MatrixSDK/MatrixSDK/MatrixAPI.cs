@@ -29,7 +29,7 @@ namespace MatrixSDK
 		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
-
+		public bool RunningInitialSync { get; private set; }
 		JSONSerializer matrixSerializer;
 
 		/// <summary>
@@ -48,6 +48,7 @@ namespace MatrixSDK
 			client = new HttpClient ();
 			client.BaseAddress = new Uri (baseurl);
 			rng = new Random (DateTime.Now.Millisecond);
+			RunningInitialSync = true;
 		}
 
 		private void pollThread_Run(){
@@ -179,9 +180,15 @@ namespace MatrixSDK
 
 		public MatrixProfile ClientProfile(string userid){
 			JObject response;
-			HttpStatusCode code = GetRequest ("client/r0/profile/" + userid,true, out response);
-			if (code == HttpStatusCode.OK) {
-				return response.ToObject<MatrixProfile> ();
+			try
+			{
+				HttpStatusCode code = GetRequest ("client/r0/profile/" + userid,true, out response);
+				if (code == HttpStatusCode.OK) {
+					return response.ToObject<MatrixProfile> ();
+				}
+			}
+			catch(MatrixServerError){
+				return null;
 			}
 			return null;
 		}
@@ -203,6 +210,8 @@ namespace MatrixSDK
 					throw new MatrixException ("Could not decode sync", e);
 				}
 			}
+			if (RunningInitialSync)
+				RunningInitialSync = false;
 		}
 
 		private void processSync(MatrixSync syncData){
@@ -248,6 +257,11 @@ namespace MatrixSDK
 				return null;
 			}
 				
+		}
+
+		public void LeaveRoom(string roomid){
+			JObject result;
+			PostRequest(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
 		}
 
 		public MatrixRoom GetRoom(string roomid){

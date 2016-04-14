@@ -9,6 +9,7 @@ namespace MatrixSDK.Structures
 		/// </summary>	
 		public MatrixEventContent content;
 		public Int64 origin_server_ts;
+		public Int64 age;
 		public string sender;
 		public string type;
 		public string event_id;

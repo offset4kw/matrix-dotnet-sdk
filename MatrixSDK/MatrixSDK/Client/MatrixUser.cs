@@ -1,6 +1,6 @@
 ﻿using System;
 using MatrixSDK.Structures;
-namespace MatrixSDK
+namespace MatrixSDK.Client
 {
 	public class MatrixUser
 	{

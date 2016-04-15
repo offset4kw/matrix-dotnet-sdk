@@ -55,7 +55,9 @@ namespace MatrixSDK
 			if (messageContentTypes.TryGetValue (type, out otype)) {
 				return otype;
 			} else {
+				#if DEBUG
 				Console.WriteLine ("Unknown Message Type:" + type);
+				#endif
 			}
 			return typeof(MatrixMRoomMessage);
 		}
@@ -76,7 +78,9 @@ namespace MatrixSDK
 				}
 				return content;
 			} else {
+				#if DEBUG
 				Console.WriteLine ("Unknown Event:" + type);
+				#endif
 				return new MatrixEventContent();
 			}
 		}

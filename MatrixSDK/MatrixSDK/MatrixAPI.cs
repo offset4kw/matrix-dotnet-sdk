@@ -17,38 +17,42 @@ using MatrixSDK.Exceptions;
 using MatrixSDK.Structures;
 namespace MatrixSDK
 {
+	public delegate void MatrixAPIRoomJoinedDelegate(string roomid, MatrixEventRoomJoined joined);
 	public class MatrixAPI
 	{
 		public const string VERSION = "r0.0.1";
 		string baseurl;
-		string syncToken = "";
+		private string syncToken = "";
 		HttpClient client;
 		MatrixLoginResponse current_login = null;
 		Thread poll_thread;
 		bool shouldRun = false;
-		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
 		public bool RunningInitialSync { get; private set; }
 		JSONSerializer matrixSerializer;
+
+		public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
 
 		/// <summary>
 		/// Timeout in seconds between sync requests.
 		/// </summary>
 		public int SyncTimeout = 10000;
 
-		public MatrixAPI (string URL)
+		public MatrixAPI (string URL,string token = "")
 		{
 			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
 			matrixSerializer = new JSONSerializer ();
 			baseurl = URL;
-			if (!URL.Contains ("/_matrix/")) {
-				baseurl += "/_matrix/";
+			if (baseurl.EndsWith ("/")) {
+				baseurl = baseurl.Substring (0, baseurl.Length - 1);
 			}
 			client = new HttpClient ();
-			client.BaseAddress = new Uri (baseurl);
 			rng = new Random (DateTime.Now.Millisecond);
-			RunningInitialSync = true;
+			syncToken = token;
+			if (syncToken == "") {
+				RunningInitialSync = true;
+			}
 		}
 
 		private void pollThread_Run(){
@@ -62,6 +66,10 @@ namespace MatrixSDK
 				}
 				Thread.Sleep(250);
 			}
+		}
+
+		public string GetSyncToken(){
+			return syncToken;
 		}
 
 		public void StartSyncThreads(){
@@ -89,6 +97,10 @@ namespace MatrixSDK
 		}
 
 		private HttpStatusCode GetRequest(string apiPath, bool authenticate, out JObject result){
+			apiPath = baseurl + apiPath;
+			#if DEBUG
+			Console.WriteLine(apiPath);
+			#endif
 			if(authenticate){
 				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
 			}
@@ -97,6 +109,7 @@ namespace MatrixSDK
 		}
 
 		private HttpStatusCode PutRequest(string apiPath, bool authenticate, JObject data, out JObject result){
+			apiPath = baseurl + apiPath;
 			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
 			if(authenticate){
 				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
@@ -106,6 +119,7 @@ namespace MatrixSDK
 		}
 
 		private HttpStatusCode PostRequest(string apiPath, bool authenticate, JObject data, out JObject result){
+			apiPath = baseurl + apiPath;
 			StringContent content;
 			if (data != null) {
 				content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
@@ -163,6 +177,36 @@ namespace MatrixSDK
 			return (new List<string> (version).Contains (VERSION));//TODO: Support version checking properly.
 		}
 
+		public bool IsLoggedIn(){
+			//TODO: Check token is still valid
+			return current_login != null;
+		}
+
+		private void processSync(MatrixSync syncData){
+			syncToken = syncData.next_batch;
+			//Grab data from rooms the user has joined.
+			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join) {
+				if (SyncJoinEvent != null) {
+					SyncJoinEvent.Invoke (room.Key, room.Value);
+				}
+			}
+		}
+
+		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
+			JObject msgData = ObjectToJson (msg.content);
+			JObject result;
+			try
+			{
+				HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString(msg.room_id), msg.type, msg.txnId), true, msgData,out result);
+				return code == HttpStatusCode.OK;
+			}
+			catch(MatrixException e){
+				Console.WriteLine ("Exception occured sending message: " + e.Message);
+				return false;
+			}
+		}
+
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-login")]
 		public void ClientLogin(MatrixLogin login){
 			JObject result;
 			HttpStatusCode code = PostRequest ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
@@ -173,16 +217,12 @@ namespace MatrixSDK
 			}
 		}
 
-		public bool IsLoggedIn(){
-			//TODO: Check token is still valid
-			return current_login != null;
-		}
-
+		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-profile-userid")]
 		public MatrixProfile ClientProfile(string userid){
 			JObject response;
 			try
 			{
-				HttpStatusCode code = GetRequest ("client/r0/profile/" + userid,true, out response);
+				HttpStatusCode code = GetRequest ("/_matrix/client/r0/profile/" + userid,true, out response);
 				if (code == HttpStatusCode.OK) {
 					return response.ToObject<MatrixProfile> ();
 				}
@@ -193,9 +233,10 @@ namespace MatrixSDK
 			return null;
 		}
 
+		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-sync")]
 		public void ClientSync(){
 			JObject response;
-			string url = "client/r0/sync?timeout"+SyncTimeout;
+			string url = "/_matrix/client/r0/sync?timeout="+SyncTimeout;
 			if (!String.IsNullOrEmpty(syncToken)) {
 				url += "&since=" + syncToken;
 			}
@@ -214,26 +255,10 @@ namespace MatrixSDK
 				RunningInitialSync = false;
 		}
 
-		private void processSync(MatrixSync syncData){
-			syncToken = syncData.next_batch;
-			//Grab data from rooms the user has joined.
-			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join) {
-				MatrixRoom mroom;
-				if (!rooms.ContainsKey (room.Key)) {
-					mroom = new MatrixRoom (this, room.Key);
-					rooms.TryAdd (room.Key, mroom);
-					//Update existing room
-				} else {
-					mroom = rooms [room.Key];
-				}
-				room.Value.state.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
-				room.Value.timeline.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
-			}
-		}
-
-		public string[] GetVersions(){
+		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-versions")]
+		public string[] ClientVersions(){
 			JObject result;
-			HttpStatusCode code = GetRequest ("client/versions",false, out result);
+			HttpStatusCode code = GetRequest ("/_matrix/client/versions",false, out result);
 			if (code == HttpStatusCode.OK) {
 				return result.GetValue ("versions").ToObject<string[]> ();
 			} else {
@@ -241,43 +266,27 @@ namespace MatrixSDK
 			}
 		}
 
-		public MatrixRoom JoinRoom(string roomid){
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-join")]
+		public string ClientJoin(string roomid){
 			JObject result;
 			HttpStatusCode code = PostRequest(String.Format("/_matrix/client/r0/join/{0}",System.Uri.EscapeDataString(roomid)),true,null,out result);
 			if (code == HttpStatusCode.OK) {
 				roomid = result ["room_id"].ToObject<string> ();
-				if (!rooms.ContainsKey (roomid)) {
-					MatrixRoom room = new MatrixRoom (this, roomid);
-					rooms.TryAdd (room.ID, room);
-					return room;
-				} else {
-					return rooms [roomid];
-				}
+				return roomid;
 			} else {
 				return null;
 			}
 				
 		}
 
-		public void LeaveRoom(string roomid){
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-leave")]
+		public void RoomLeave(string roomid){
 			JObject result;
 			PostRequest(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
 		}
 
-		public MatrixRoom GetRoom(string roomid){
-			if (rooms.ContainsKey (roomid)) {
-				return rooms [roomid];
-			} else {
-				return null;
-				//TODO: Attempt to find the room if not in the timeline.
-			}
-		}
-
-		public MatrixRoom[] GetRooms(){
-			return rooms.Values.ToArray ();
-		}
-
-		public MatrixRoom CreateRoom(MatrixCreateRoom roomrequest = null){
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-createroom")]
+		public string ClientCreateRoom(MatrixCreateRoom roomrequest = null){
 			JObject result;
 			JObject req = null;
 			if (roomrequest != null) {
@@ -286,20 +295,20 @@ namespace MatrixSDK
 			HttpStatusCode code = PostRequest ("/_matrix/client/r0/createRoom", true, req, out result);
 			if (code == HttpStatusCode.OK) {
 				string roomid = result ["room_id"].ToObject<string> ();
-				MatrixRoom room = new MatrixRoom (this,roomid);
-				rooms.TryAdd (roomid, room);
-				return room;
+				return roomid;
 			} else {
 				return null;
 			}
 		}
 
-		public void SendStateMessage(string roomid,string type,MatrixRoomStateEvent message){
+		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-state-eventtype")]
+		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message){
 			JObject msgData = JObject.FromObject (message);
 			JObject result;
 			PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
 		}
 
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-invite")]
 		public void InviteToRoom(string roomid, string userid){
 			JObject result;
 			JObject msgData = JObject.FromObject(new {user_id=userid});
@@ -307,7 +316,9 @@ namespace MatrixSDK
 
 		}
 
-		public void QueueRoomMessage(string roomid,string type,MatrixMRoomMessage message){
+
+		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid")]
+		public void RoomMessageSend(string roomid,string type,MatrixMRoomMessage message){
 			bool collision = true;
 			MatrixAPIPendingEvent evt = new MatrixAPIPendingEvent ();
 			evt.room_id = roomid;
@@ -319,21 +330,6 @@ namespace MatrixSDK
 			}
 			pendingMessages.Enqueue(evt);
 		}
-
-		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
-			JObject msgData = ObjectToJson (msg.content);
-			JObject result;
-			try
-			{
-				HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString(msg.room_id), msg.type, msg.txnId), true, msgData,out result);
-				return code == HttpStatusCode.OK;
-			}
-			catch(MatrixException e){
-				Console.WriteLine ("Exception occured sending message: " + e.Message);
-				return false;
-			}
-		}
-
 	}
 
 	public class MatrixAPIPendingEvent{

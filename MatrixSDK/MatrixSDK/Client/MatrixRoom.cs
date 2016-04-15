@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using MatrixSDK.Structures;
-namespace MatrixSDK
+namespace MatrixSDK.Client
 {
-	public delegate void MatrixEventDelegate(MatrixRoom room,MatrixEvent evt);
+	public delegate void MatrixRoomEventDelegate(MatrixRoom room,MatrixEvent evt);
 	public class MatrixRoom
 	{
 
@@ -17,8 +17,8 @@ namespace MatrixSDK
 		public string[] Aliases { get; private set; }
 		public EMatrixRoomJoinRules JoinRule { get; private set; }
 		public MatrixMRoomPowerLevels PowerLevels { get; private set; } //TODO: Implement this inside this class
-		public event MatrixEventDelegate OnMessage;
-		public event MatrixEventDelegate OnEvent;
+		public event MatrixRoomEventDelegate OnMessage;
+		public event MatrixRoomEventDelegate OnEvent;
 		public int OnMessageMaximumAge = 5000;
 
 		private List<MatrixMRoomMessage> messages = new List<MatrixMRoomMessage>(MESSAGE_CAPACITY);
@@ -56,7 +56,14 @@ namespace MatrixSDK
 				messages.Add ((MatrixMRoomMessage)evt.content);
 				if (OnMessage != null ) {
 					if(OnMessageMaximumAge == 0 || evt.age < OnMessageMaximumAge )
-					OnMessage.Invoke (this, evt);
+					try
+					{
+						OnMessage.Invoke (this, evt);
+					}
+					catch(Exception e){
+						Console.WriteLine ("A OnMessage handler failed");
+						Console.WriteLine (e);
+					}
 					return;
 				}
 			}
@@ -69,17 +76,17 @@ namespace MatrixSDK
 		public void SetName(string newName){
 			MatrixMRoomName nameEvent = new MatrixMRoomName ();
 			nameEvent.name = newName;
-			api.SendStateMessage (ID, "m.room.name", nameEvent); 
+			api.RoomStateSend (ID, "m.room.name", nameEvent); 
 		}
 
 		public void SetTopic(string newTopic){
 			MatrixMRoomTopic topicEvent = new MatrixMRoomTopic ();
 			topicEvent.topic = newTopic;
-			api.SendStateMessage (ID, "m.room.topic", topicEvent);
+			api.RoomStateSend (ID, "m.room.topic", topicEvent);
 		}
 
 		public void SendMessage(MatrixMRoomMessage message){
-			api.QueueRoomMessage (ID, "m.room.message", message);
+			api.RoomMessageSend (ID, "m.room.message", message);
 		}
 
 		public void SendMessage(string body){
@@ -89,7 +96,7 @@ namespace MatrixSDK
 		}
 
 		public void ApplyNewPowerLevels(MatrixMRoomPowerLevels powerlevels){
-			api.SendStateMessage (ID,"m.room.power_levels",powerlevels);
+			api.RoomStateSend (ID,"m.room.power_levels",powerlevels);
 		}
 		public void InviteToRoom(string userid){
 			api.InviteToRoom (ID, userid);
@@ -100,7 +107,7 @@ namespace MatrixSDK
 		}
 
 		public void LeaveRoom(){
-			api.LeaveRoom (ID);
+			api.RoomLeave (ID);
 		}
 
 	}

@@ -21,6 +21,8 @@ namespace MatrixSDK
 	public class MatrixAPI
 	{
 		public const string VERSION = "r0.0.1";
+		public bool IsConnected { get; private set; }
+		public int BadSyncTimeout = 25000;
 		string baseurl;
 		private string syncToken = "";
 		HttpClient client;
@@ -57,7 +59,16 @@ namespace MatrixSDK
 
 		private void pollThread_Run(){
 			while (shouldRun) {
-				ClientSync ();
+				try
+				{
+				ClientSync (true);
+				}
+				catch(Exception e){
+					#if DEBUG
+					Console.WriteLine ("[warn] A Matrix exception occured during sync!");
+					Console.WriteLine (e);
+					#endif
+				}
 				MatrixAPIPendingEvent evt;
 				while (pendingMessages.TryDequeue(out evt)) {
 					if (!sendRoomMessage (evt)) {
@@ -139,7 +150,7 @@ namespace MatrixSDK
 			try
 			{
 				task.Wait();
-				if (task.Status == TaskStatus.RanToCompletion) {
+				if (task.Status == TaskStatus.RanToCompletion ) {
 						stask = task.Result.Content.ReadAsStringAsync();
 						stask.Wait();
 				}
@@ -155,9 +166,15 @@ namespace MatrixSDK
 				throw new MatrixException (e.InnerException.Message,e.InnerException);
 			}
 			if (stask.Status == TaskStatus.RanToCompletion) {
-				result = JObject.Parse (stask.Result);
-				if (result ["errcode"] != null) {
-					throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
+				try
+				{
+					result = JObject.Parse (stask.Result);
+					if (result ["errcode"] != null) {
+						throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
+					}
+				}
+				catch(JsonException e){
+					//Regular web failure then
 				}
 			}
 			return task.Result.StatusCode;
@@ -234,7 +251,7 @@ namespace MatrixSDK
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-sync")]
-		public void ClientSync(){
+		public void ClientSync(bool ConnectionFailureTimeout = false){
 			JObject response;
 			string url = "/_matrix/client/r0/sync?timeout="+SyncTimeout;
 			if (!String.IsNullOrEmpty(syncToken)) {
@@ -242,14 +259,17 @@ namespace MatrixSDK
 			}
 			HttpStatusCode code = GetRequest (url,true, out response);
 			if (code == HttpStatusCode.OK) {
-				try
-				{
-					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (),new JSONEventConverter()	);
-					processSync(sync);
-				}
-				catch(Exception e){
+				try {
+					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (), new JSONEventConverter ());
+					processSync (sync);
+					IsConnected = true;
+				} catch (Exception e) {
 					throw new MatrixException ("Could not decode sync", e);
 				}
+			} else if (ConnectionFailureTimeout) {
+				IsConnected = false;
+				Console.Error.WriteLine ("Couldn't reach the matrix home server during a sync. Got Response : " + code);  
+				Thread.Sleep (BadSyncTimeout);
 			}
 			if (RunningInitialSync)
 				RunningInitialSync = false;

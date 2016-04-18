@@ -5,12 +5,22 @@ using MatrixSDK.Exceptions;
 using MatrixSDK.Structures;
 namespace MatrixSDK.Client
 {
+	/// <summary>
+	/// The Matrix Client is a wrapper over the MatrixAPI object which provides a safe managed way
+	/// to interact with a Matrix Home Server.
+	/// </summary>
 	public class MatrixClient : IDisposable
 	{
 
 		MatrixAPI api;
+
+		/// <summary>
+		/// How long to poll for a Sync request before we retry.
+		/// </summary>
+		/// <value>The sync timeout in milliseconds.</value>
 		public int SyncTimeout { get {return api.SyncTimeout;} set{ api.SyncTimeout = value; } }
 		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MatrixSDK.MatrixClient"/> class.
 		/// The client will preform a connection and try to retrieve version information.
@@ -120,7 +130,11 @@ namespace MatrixSDK.Client
 			return CreateRoom (room);
 		}
 
-
+		/// <summary>
+		/// Join a matrix room.
+		/// </summary>
+		/// <returns>The room.</returns>
+		/// <param name="roomid">roomid or alias</param>
 		public MatrixRoom JoinRoom(string roomid){//TODO: Maybe add a try method.
 			if (!rooms.ContainsKey (roomid)) {//TODO: Check the status of the room too.
 				roomid = api.ClientJoin (roomid);
@@ -129,14 +143,22 @@ namespace MatrixSDK.Client
 			}
 			return rooms [roomid];
 		}
-
-		//TODO: GetRoom could be rephrased
+	
+		/// <summary>
+		/// Return a joined room object by it's roomid.
+		/// </summary>
+		/// <returns>The room.</returns>
+		/// <param name="roomid">Roomid.</param>
 		public MatrixRoom GetRoom(string roomid){//TODO: Maybe add a try method.
 			MatrixRoom room = null;
 			rooms.TryGetValue(roomid,out room);
 			return room;
 		}
-
+		/// <summary>
+		/// Get a room object by any of it's registered aliases.
+		/// </summary>
+		/// <returns>The room by alias.</returns>
+		/// <param name="alias">CanonicalAlias or any Alias</param>
 		public MatrixRoom GetRoomByAlias(string alias){
 			MatrixRoom room = rooms.Values.FirstOrDefault( x => {
 				if(x.CanonicalAlias == alias){
@@ -154,6 +176,14 @@ namespace MatrixSDK.Client
 			}
 		}
 
+		/// <summary>
+		/// Releases all resource used by the <see cref="MatrixSDK.Client.MatrixClient"/> object.
+		/// In addition, this will stop the sync thread.
+		/// </summary>
+		/// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="MatrixSDK.Client.MatrixClient"/>. The
+		/// <see cref="Dispose"/> method leaves the <see cref="MatrixSDK.Client.MatrixClient"/> in an unusable state. After
+		/// calling <see cref="Dispose"/>, you must release all references to the <see cref="MatrixSDK.Client.MatrixClient"/>
+		/// so the garbage collector can reclaim the memory that the <see cref="MatrixSDK.Client.MatrixClient"/> was occupying.</remarks>
 		public void Dispose(){
 			api.StopSyncThreads ();
 		}

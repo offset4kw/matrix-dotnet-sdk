@@ -60,6 +60,10 @@
     <Compile Include="Client\MatrixUser.cs" />
     <Compile Include="Client\MatrixClient.cs" />
     <Compile Include="MatrixAttributes.cs" />
+    <Compile Include="Backends\HttpBackend.cs" />
+    <Compile Include="Backends\IMatrixAPIBackend.cs" />
+    <Compile Include="Backends\MatrixRequestError.cs" />
+    <Compile Include="Backends\MatrixErrorCode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -69,6 +73,7 @@
     <Folder Include="Structures\" />
     <Folder Include="Structures\Events\" />
     <Folder Include="Client\" />
+    <Folder Include="Backends\" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

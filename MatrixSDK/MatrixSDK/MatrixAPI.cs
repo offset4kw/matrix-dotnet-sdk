@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using System.Net;
-using System.Net.Http;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Text;
@@ -15,6 +11,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using MatrixSDK.Exceptions;
 using MatrixSDK.Structures;
+using MatrixSDK.Backends;
 namespace MatrixSDK
 {
 	public delegate void MatrixAPIRoomJoinedDelegate(string roomid, MatrixEventRoomJoined joined);
@@ -22,17 +19,19 @@ namespace MatrixSDK
 	{
 		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
+		public bool RunningInitialSync { get; private set; }
 		public int BadSyncTimeout = 25000;
-		string baseurl;
+
 		private string syncToken = "";
-		HttpClient client;
 		MatrixLoginResponse current_login = null;
 		Thread poll_thread;
 		bool shouldRun = false;
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
-		public bool RunningInitialSync { get; private set; }
 		JSONSerializer matrixSerializer;
+		IMatrixAPIBackend mbackend;
+
+
 
 		public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
 
@@ -43,13 +42,8 @@ namespace MatrixSDK
 
 		public MatrixAPI (string URL,string token = "")
 		{
-			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
+			mbackend = new HttpBackend (URL);
 			matrixSerializer = new JSONSerializer ();
-			baseurl = URL;
-			if (baseurl.EndsWith ("/")) {
-				baseurl = baseurl.Substring (0, baseurl.Length - 1);
-			}
-			client = new HttpClient ();
 			rng = new Random (DateTime.Now.Millisecond);
 			syncToken = token;
 			if (syncToken == "") {
@@ -83,6 +77,16 @@ namespace MatrixSDK
 			return syncToken;
 		}
 
+		public void ClientTokenRefresh(string refreshToken){
+			JObject request = new JObject ();
+			request.Add ("refresh_token", refreshToken);
+			JObject response;
+			MatrixRequestError error = mbackend.Post ("/_matrix/r0/tokenrefresh", true, request,out response);
+			if (!error.IsOk) {
+				throw new MatrixServerError (error.MatrixErrorCode.ToString(), error.MatrixError);
+			}
+		}
+
 		public void StartSyncThreads(){
 			if (poll_thread == null) {
 				poll_thread = new Thread (pollThread_Run);
@@ -102,84 +106,9 @@ namespace MatrixSDK
 			shouldRun = false;
 			poll_thread.Join ();
 		}
-
-		private bool acceptCertificate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors){
-			return true;//Find a better way to handle mono certs.
-		}
-
-		private HttpStatusCode GetRequest(string apiPath, bool authenticate, out JObject result){
-			apiPath = baseurl + apiPath;
-			#if DEBUG
-			Console.WriteLine(apiPath);
-			#endif
-			if(authenticate){
-				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
-			}
-			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
-			return GenericRequest (task, out result);
-		}
-
-		private HttpStatusCode PutRequest(string apiPath, bool authenticate, JObject data, out JObject result){
-			apiPath = baseurl + apiPath;
-			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
-			if(authenticate){
-				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
-			}
-			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
-			return GenericRequest (task, out result);
-		}
-
-		private HttpStatusCode PostRequest(string apiPath, bool authenticate, JObject data, out JObject result){
-			apiPath = baseurl + apiPath;
-			StringContent content;
-			if (data != null) {
-				content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
-			} else {
-				content = new StringContent ("{}");
-			}
-			if(authenticate){
-				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + current_login.access_token;
-			}
-			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
-			return GenericRequest (task, out result);
-		}
-
-		private HttpStatusCode GenericRequest(Task<HttpResponseMessage> task, out JObject result){//Cleanup
-			Task<string> stask = null;
-			result = null;
-			try
-			{
-				task.Wait();
-				if (task.Status == TaskStatus.RanToCompletion ) {
-						stask = task.Result.Content.ReadAsStringAsync();
-						stask.Wait();
-				}
-				else
-				{
-					return task.Result.StatusCode;
-				}
-			}
-			catch(WebException e){
-				throw e;
-			}
-			catch(AggregateException e){
-				throw new MatrixException (e.InnerException.Message,e.InnerException);
-			}
-			if (stask.Status == TaskStatus.RanToCompletion) {
-				try
-				{
-					result = JObject.Parse (stask.Result);
-					if (result ["errcode"] != null) {
-						throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
-					}
-				}
-				catch(JsonException e){
-					//Regular web failure then
-				}
-			}
-			return task.Result.StatusCode;
 			
-		}
+
+
 
 		public JObject ObjectToJson(object data){
 			JObject container;
@@ -212,42 +141,37 @@ namespace MatrixSDK
 		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
 			JObject msgData = ObjectToJson (msg.content);
 			JObject result;
-			try
-			{
-				HttpStatusCode code = PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString(msg.room_id), msg.type, msg.txnId), true, msgData,out result);
-				return code == HttpStatusCode.OK;
+			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString(msg.room_id), msg.type, msg.txnId), true, msgData,out result);
+
+			#if DEBUG
+			if(!error.IsOk){
+				Console.WriteLine (error.GetErrorString());
 			}
-			catch(MatrixException e){
-				Console.WriteLine ("Exception occured sending message: " + e.Message);
-				return false;
-			}
+			#endif
+			return error.IsOk;
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-login")]
 		public void ClientLogin(MatrixLogin login){
 			JObject result;
-			HttpStatusCode code = PostRequest ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
-			if (code == HttpStatusCode.OK) {
+			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
+			if (error.IsOk) {
 				current_login = result.ToObject<MatrixLoginResponse> ();
+				mbackend.SetAccessToken (current_login.access_token);
 			} else {
-				throw new MatrixException ("Non OK result returned from request");//TODO: Need a better exception
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-profile-userid")]
 		public MatrixProfile ClientProfile(string userid){
 			JObject response;
-			try
-			{
-				HttpStatusCode code = GetRequest ("/_matrix/client/r0/profile/" + userid,true, out response);
-				if (code == HttpStatusCode.OK) {
-					return response.ToObject<MatrixProfile> ();
-				}
-			}
-			catch(MatrixServerError){
+			MatrixRequestError error = mbackend.Get ("/_matrix/client/r0/profile/" + userid,true, out response);
+			if (error.IsOk) {
+				return response.ToObject<MatrixProfile> ();
+			} else {
 				return null;
 			}
-			return null;
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-sync")]
@@ -257,8 +181,8 @@ namespace MatrixSDK
 			if (!String.IsNullOrEmpty(syncToken)) {
 				url += "&since=" + syncToken;
 			}
-			HttpStatusCode code = GetRequest (url,true, out response);
-			if (code == HttpStatusCode.OK) {
+			MatrixRequestError error = mbackend.Get (url,true, out response);
+			if (error.IsOk) {
 				try {
 					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (), new JSONEventConverter ());
 					processSync (sync);
@@ -268,7 +192,8 @@ namespace MatrixSDK
 				}
 			} else if (ConnectionFailureTimeout) {
 				IsConnected = false;
-				Console.Error.WriteLine ("Couldn't reach the matrix home server during a sync. Got Response : " + code);  
+				Console.Error.WriteLine ("Couldn't reach the matrix home server during a sync.");
+				Console.Error.WriteLine(error.ToString());
 				Thread.Sleep (BadSyncTimeout);
 			}
 			if (RunningInitialSync)
@@ -278,8 +203,8 @@ namespace MatrixSDK
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-versions")]
 		public string[] ClientVersions(){
 			JObject result;
-			HttpStatusCode code = GetRequest ("/_matrix/client/versions",false, out result);
-			if (code == HttpStatusCode.OK) {
+			MatrixRequestError error = mbackend.Get ("/_matrix/client/versions",false, out result);
+			if (error.IsOk) {
 				return result.GetValue ("versions").ToObject<string[]> ();
 			} else {
 				throw new MatrixException ("Non OK result returned from request");//TODO: Need a better exception
@@ -289,8 +214,8 @@ namespace MatrixSDK
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-join")]
 		public string ClientJoin(string roomid){
 			JObject result;
-			HttpStatusCode code = PostRequest(String.Format("/_matrix/client/r0/join/{0}",System.Uri.EscapeDataString(roomid)),true,null,out result);
-			if (code == HttpStatusCode.OK) {
+			MatrixRequestError error = mbackend.Post(String.Format("/_matrix/client/r0/join/{0}",System.Uri.EscapeDataString(roomid)),true,null,out result);
+			if (error.IsOk) {
 				roomid = result ["room_id"].ToObject<string> ();
 				return roomid;
 			} else {
@@ -302,7 +227,10 @@ namespace MatrixSDK
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-leave")]
 		public void RoomLeave(string roomid){
 			JObject result;
-			PostRequest(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
+			MatrixRequestError error = mbackend.Post(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
+			if (!error.IsOk) {
+				throw new Exception (error.ToString ());
+			}
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-createroom")]
@@ -312,8 +240,8 @@ namespace MatrixSDK
 			if (roomrequest != null) {
 				req = ObjectToJson(roomrequest);
 			}
-			HttpStatusCode code = PostRequest ("/_matrix/client/r0/createRoom", true, req, out result);
-			if (code == HttpStatusCode.OK) {
+			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/createRoom", true, req, out result);
+			if (error.IsOk) {
 				string roomid = result ["room_id"].ToObject<string> ();
 				return roomid;
 			} else {
@@ -325,15 +253,20 @@ namespace MatrixSDK
 		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message){
 			JObject msgData = JObject.FromObject (message);
 			JObject result;
-			PutRequest (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+			if (!error.IsOk) {
+				throw new Exception (error.ToString());//TODO: Need a better exception
+			}
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-invite")]
 		public void InviteToRoom(string roomid, string userid){
 			JObject result;
 			JObject msgData = JObject.FromObject(new {user_id=userid});
-			PostRequest (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
-
+			MatrixRequestError error = mbackend.Post (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
+			if (!error.IsOk) {
+				throw new Exception (error.ToString());//TODO: Need a better exception
+			}
 		}
 
 

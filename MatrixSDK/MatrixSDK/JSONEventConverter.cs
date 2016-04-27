@@ -52,7 +52,6 @@ namespace MatrixSDK
 
 		public Type MessageContentType(string type){
 			Type otype;
-			Console.WriteLine (string.IsNullOrEmpty(type));
 			if (messageContentTypes.TryGetValue (type, out otype)) {
 				return otype;
 			} else {
@@ -93,7 +92,6 @@ namespace MatrixSDK
 		{
 			// Load JObject from stream
 			JObject jObject = JObject.Load(reader);
-			Console.WriteLine (jObject.ToString());
 			// Populate the event itself
 			MatrixEvent ev = new MatrixEvent();
 			serializer.Populate (jObject.CreateReader (), ev);

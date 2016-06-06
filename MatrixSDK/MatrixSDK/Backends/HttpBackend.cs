@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -65,16 +66,43 @@ namespace MatrixSDK.Backends
 			return requestWrap (task, out result);
 		}
 
-		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, out JObject result){
+
+		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, Dictionary<string,string> headers , out JObject result){
 			StringContent content;
 			if (data != null) {
 				content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
 			} else {
 				content = new StringContent ("{}");
 			}
+
+			foreach(KeyValuePair<string,string> header in headers){
+				content.Headers.Add(header.Key,header.Value);
+			}
+
 			getPath (ref apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
 			return requestWrap (task, out result);
+		}
+
+		public MatrixRequestError Post(string apiPath, bool authenticate, byte[] data, Dictionary<string,string> headers , out JObject result){
+			ByteArrayContent content;
+			if (data != null) {
+				content = new ByteArrayContent (data);
+			} else {
+				content = new ByteArrayContent (new byte[0]);
+			}
+
+			foreach(KeyValuePair<string,string> header in headers){
+				content.Headers.Add(header.Key,header.Value);
+			}
+
+			getPath (ref apiPath,authenticate);
+			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
+			return requestWrap (task, out result);
+		}
+
+		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, out JObject result){
+			return Post(apiPath,authenticate,data, new Dictionary<string,string>(),out result);
 		}
 
 		private HttpStatusCode GenericRequest(Task<HttpResponseMessage> task, out JObject result){

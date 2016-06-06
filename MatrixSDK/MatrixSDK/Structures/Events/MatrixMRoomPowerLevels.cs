@@ -7,14 +7,14 @@ namespace MatrixSDK.Structures
 	/// </summary>
 	public class MatrixMRoomPowerLevels : MatrixRoomStateEvent
 	{
-		public Dictionary<string,int> users;
+        public Dictionary<string,int> users = new Dictionary<string, int>();
 		public int state_default;
 		public int users_default;
 		public int events_default;
 		public int redact;
 		public int ban;
 		public int kick;
-		public Dictionary<string,int> events;
+        public Dictionary<string,int> events = new Dictionary<string, int>();
 
 	}
 }

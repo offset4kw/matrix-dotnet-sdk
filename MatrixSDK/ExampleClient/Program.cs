@@ -1,5 +1,6 @@
 ﻿using System;
 using MatrixSDK;
+using MatrixSDK.Client;
 namespace ExampleClient
 {
 	class MainClass

@@ -152,6 +152,12 @@ namespace MatrixSDK.Client
 			SendMessage (message);
 		}
 
+        public void SendNotice(string notice){
+            MMessageNotice message = new MMessageNotice ();
+            message.body = notice;
+            SendMessage (message);
+        }
+
 		/// <summary>
 		/// Applies the new power levels.
 		/// <remarks> You must set all the values in powerlevels.</remarks>
@@ -181,6 +187,7 @@ namespace MatrixSDK.Client
 		/// Leave the room on the server.
 		/// </summary>
 		public void LeaveRoom(){
+            api.FlushMessageQueue();
 			api.RoomLeave (ID);
 		}
 

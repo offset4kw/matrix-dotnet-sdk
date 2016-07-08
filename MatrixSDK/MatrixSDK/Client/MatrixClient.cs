@@ -13,6 +13,7 @@ namespace MatrixSDK.Client
 	{
 
 		MatrixAPI api;
+        public delegate void MatrixInviteDelegate(string roomid, MatrixEventRoomInvited joined);
 
 		/// <summary>
 		/// How long to poll for a Sync request before we retry.
@@ -20,6 +21,10 @@ namespace MatrixSDK.Client
 		/// <value>The sync timeout in milliseconds.</value>
 		public int SyncTimeout { get {return api.SyncTimeout;} set{ api.SyncTimeout = value; } }
 		ConcurrentDictionary<string,MatrixRoom> rooms 			= new ConcurrentDictionary<string,MatrixRoom>();
+
+        public event MatrixInviteDelegate OnInvite;
+
+
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MatrixSDK.MatrixClient"/> class.
@@ -38,6 +43,7 @@ namespace MatrixSDK.Client
 					Console.WriteLine("Client supports up to "+MatrixAPI.VERSION);
 				}
 				api.SyncJoinEvent += MatrixClient_OnEvent;
+                api.SyncInviteEvent += MatrixClient_OnInvite;
 			}
 			catch(MatrixException e){
 				throw new MatrixException("An exception occured while trying to connect",e);
@@ -51,6 +57,12 @@ namespace MatrixSDK.Client
 		public string GetSyncToken(){
 			return api.GetSyncToken ();
 		}
+
+        public void MatrixClient_OnInvite(string roomid, MatrixEventRoomInvited joined){
+            if(OnInvite != null){
+                OnInvite.Invoke(roomid,joined);
+            }
+        }
 
 		private void MatrixClient_OnEvent (string roomid, MatrixEventRoomJoined joined)
 		{
@@ -108,8 +120,7 @@ namespace MatrixSDK.Client
 		public MatrixRoom CreateRoom(MatrixCreateRoom roomdetails = null){
 			string roomid = api.ClientCreateRoom (roomdetails);
 			if (roomid != null) {
-				MatrixRoom room = new MatrixRoom (api, roomid);
-				rooms.TryAdd (roomid, room);
+				MatrixRoom room = JoinRoom(roomid);
 				return room;
 			}
 			return null;
@@ -138,10 +149,18 @@ namespace MatrixSDK.Client
 		public MatrixRoom JoinRoom(string roomid){//TODO: Maybe add a try method.
 			if (!rooms.ContainsKey (roomid)) {//TODO: Check the status of the room too.
 				roomid = api.ClientJoin (roomid);
+				if(roomid == null){
+					return null;
+				}
 				MatrixRoom room = new MatrixRoom (api, roomid);
 				rooms.TryAdd (room.ID, room);
 			}
 			return rooms [roomid];
+		}
+
+		public MatrixMediaFile UploadFile(string contentType,byte[] data){
+			string url = api.MediaUpload(contentType,data);
+			return new MatrixMediaFile(api,url,contentType);
 		}
 	
 		/// <summary>

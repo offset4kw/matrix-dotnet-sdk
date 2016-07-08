@@ -14,7 +14,8 @@ using MatrixSDK.Structures;
 using MatrixSDK.Backends;
 namespace MatrixSDK
 {
-	public delegate void MatrixAPIRoomJoinedDelegate(string roomid, MatrixEventRoomJoined joined);
+    public delegate void MatrixAPIRoomJoinedDelegate(string roomid, MatrixEventRoomJoined joined);
+    public delegate void MatrixAPIRoomInviteDelegate(string roomid, MatrixEventRoomInvited invited);
 	public class MatrixAPI
 	{
 		public const string VERSION = "r0.0.1";
@@ -31,9 +32,10 @@ namespace MatrixSDK
 		JSONSerializer matrixSerializer;
 		IMatrixAPIBackend mbackend;
 
-
-
-		public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
+		public readonly string BaseURL;
+        
+        public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
+        public event MatrixAPIRoomInviteDelegate SyncInviteEvent;
 
 		/// <summary>
 		/// Timeout in seconds between sync requests.
@@ -43,6 +45,7 @@ namespace MatrixSDK
 		public MatrixAPI (string URL,string token = "")
 		{
 			mbackend = new HttpBackend (URL);
+			BaseURL = URL;
 			matrixSerializer = new JSONSerializer ();
 			rng = new Random (DateTime.Now.Millisecond);
 			syncToken = token;
@@ -50,6 +53,15 @@ namespace MatrixSDK
 				RunningInitialSync = true;
 			}
 		}
+
+        public void FlushMessageQueue(){
+                MatrixAPIPendingEvent evt;
+                while (pendingMessages.TryDequeue(out evt)) {
+                    if (!sendRoomMessage (evt)) {
+                        pendingMessages.Enqueue(evt);
+                    }
+                }
+        }
 
 		private void pollThread_Run(){
 			while (shouldRun) {
@@ -63,12 +75,7 @@ namespace MatrixSDK
 					Console.WriteLine (e);
 					#endif
 				}
-				MatrixAPIPendingEvent evt;
-				while (pendingMessages.TryDequeue(out evt)) {
-					if (!sendRoomMessage (evt)) {
-						pendingMessages.Enqueue(evt);
-					}
-				}
+                FlushMessageQueue();
 				Thread.Sleep(250);
 			}
 		}
@@ -136,6 +143,12 @@ namespace MatrixSDK
 					SyncJoinEvent.Invoke (room.Key, room.Value);
 				}
 			}
+            foreach (KeyValuePair<string,MatrixEventRoomInvited> room in syncData.rooms.invite) {
+                if (SyncInviteEvent != null) {
+                    SyncInviteEvent.Invoke (room.Key, room.Value);
+                }
+            }
+
 		}
 
 		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
@@ -283,13 +296,19 @@ namespace MatrixSDK
 			}
 			pendingMessages.Enqueue(evt);
 		}
+
+		public string MediaUpload(string contentType,byte[] data){
+			JObject result = new JObject();
+			MatrixRequestError error = mbackend.Post("/_matrix/media/r0/upload",true,data,new Dictionary<string,string>(){{"Content-Type",contentType}},out result);
+			if (!error.IsOk) {
+				throw new Exception (error.ToString());//TODO: Need a better exception
+			}
+			return result.GetValue("content_uri").ToObject<string>();
+		}
 	}
 
-	public class MatrixAPIPendingEvent{
-		public string type;
-		public string room_id;
+	public class MatrixAPIPendingEvent : MatrixEvent{
 		public int txnId;
-		public MatrixEventContent content;
 	}
 }
 

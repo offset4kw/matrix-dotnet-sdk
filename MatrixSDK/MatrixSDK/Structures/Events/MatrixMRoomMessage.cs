@@ -6,6 +6,11 @@ namespace MatrixSDK.Structures
 	{
 		public virtual string msgtype { get; set;}
 		public string body;
+
+        public override string ToString ()
+        {
+            return body;
+        }
 	}
 		
 	public class MMessageNotice : MatrixMRoomMessage
@@ -48,6 +53,12 @@ namespace MatrixSDK.Structures
 		public string thumbnail_url;
 		public MatrixImageInfo thumbnail_info;
 	}
+    public class MMessageCustomHTML : MatrixMRoomMessage
+    {
+        public override string msgtype { get { return "m.notice"; }}
+        public string format { get { return "org.matrix.custom.html"; }}
+        public string formatted_body;
+    }
 
 
 }

@@ -49,7 +49,29 @@ namespace MatrixSDK.Client
 				throw new MatrixException("An exception occured while trying to connect",e);
 			}
 		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MatrixSDK.Client.MatrixClient"/> class.
+		/// This intended for Application Services only who want to preform actions as another user.
+		/// Sync is not preformed.
+		/// </summary>
+		/// <param name="URL">URL before /_matrix/</param>
+		/// <param name="application_token">Application token for the AS.</param>
+		/// <param name="userid">Userid as the user you intend to go as.</param>
+		public MatrixClient (string URL, string application_token,string userid)
+		{
+			api = new MatrixAPI (URL,application_token,userid);
 
+			try{
+				string[] versions = api.ClientVersions ();
+				if(!MatrixAPI.IsVersionSupported(versions)){
+					Console.WriteLine("Warning: Client version is not supported by the server");
+					Console.WriteLine("Client supports up to "+MatrixAPI.VERSION);
+				}
+			}
+			catch(MatrixException e){
+				throw new MatrixException("An exception occured while trying to connect",e);
+			}
+		}
 		/// <summary>
 		/// Gets the sync token from the API. 
 		/// </summary>

@@ -23,13 +23,18 @@ namespace MatrixSDK
 		public bool RunningInitialSync { get; private set; }
 		public int BadSyncTimeout = 25000;
 
+		public string user_id = null;
 		private string syncToken = "";
+		private bool IsAS;
+
 		MatrixLoginResponse current_login = null;
 		Thread poll_thread;
 		bool shouldRun = false;
 		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
 		Random rng;
-		JSONSerializer matrixSerializer;
+
+		static JSONSerializer matrixSerializer = new JSONSerializer ();
+
 		IMatrixAPIBackend mbackend;
 
 		public readonly string BaseURL;
@@ -42,16 +47,35 @@ namespace MatrixSDK
 		/// </summary>
 		public int SyncTimeout = 10000;
 
-		public MatrixAPI (string URL,string token = "")
+		public MatrixAPI (string URL, string token = "")
 		{
+			if (!Uri.IsWellFormedUriString (URL, UriKind.Absolute)) {
+				throw new MatrixException("URL is not valid");
+			}
+
+			IsAS = false;
 			mbackend = new HttpBackend (URL);
 			BaseURL = URL;
-			matrixSerializer = new JSONSerializer ();
+
 			rng = new Random (DateTime.Now.Millisecond);
 			syncToken = token;
 			if (syncToken == "") {
 				RunningInitialSync = true;
 			}
+		}
+
+		public MatrixAPI(string URL, string application_token, string user_id){
+			if (!Uri.IsWellFormedUriString (URL, UriKind.Absolute)) {
+				throw new MatrixException("URL is not valid");
+			}
+
+			IsAS = true;
+			mbackend = new HttpBackend (URL,user_id);
+			mbackend.SetAccessToken(application_token);
+			this.user_id = user_id;
+			BaseURL = URL;
+			rng = new Random (DateTime.Now.Millisecond);
+			matrixSerializer = new JSONSerializer ();
 		}
 
         public void FlushMessageQueue(){
@@ -113,15 +137,17 @@ namespace MatrixSDK
 			shouldRun = false;
 			poll_thread.Join ();
 		}
-			
 
-
-
-		public JObject ObjectToJson(object data){
+		public static JObject ObjectToJson (object data)
+		{
 			JObject container;
-			using(JTokenWriter writer = new JTokenWriter()){
-				matrixSerializer.Serialize(writer,data);
-				container = (JObject)writer.Token;
+			using (JTokenWriter writer = new JTokenWriter ()) {
+				try {
+					matrixSerializer.Serialize (writer, data);
+					container = (JObject)writer.Token;
+				} catch (Exception e) {
+					throw new Exception("Couldn't convert obj to JSON",e);
+				}
 			}
 			return container;
 		}
@@ -170,6 +196,7 @@ namespace MatrixSDK
 			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
 			if (error.IsOk) {
 				current_login = result.ToObject<MatrixLoginResponse> ();
+				user_id = current_login.user_id;
 				mbackend.SetAccessToken (current_login.access_token);
 			} else {
 				throw new MatrixException (error.ToString());//TODO: Need a better exception
@@ -242,7 +269,7 @@ namespace MatrixSDK
 			JObject result;
 			MatrixRequestError error = mbackend.Post(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
 			if (!error.IsOk) {
-				throw new Exception (error.ToString ());
+				throw new MatrixException (error.ToString ());
 			}
 		}
 
@@ -268,7 +295,7 @@ namespace MatrixSDK
 			JObject result;
 			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
 			if (!error.IsOk) {
-				throw new Exception (error.ToString());//TODO: Need a better exception
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
 		}
 
@@ -278,7 +305,7 @@ namespace MatrixSDK
 			JObject msgData = JObject.FromObject(new {user_id=userid});
 			MatrixRequestError error = mbackend.Post (String.Format ("/_matrix/client/r0/rooms/{0}/invite", System.Uri.EscapeDataString(roomid)), true, msgData,out result);
 			if (!error.IsOk) {
-				throw new Exception (error.ToString());//TODO: Need a better exception
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
 		}
 
@@ -301,9 +328,27 @@ namespace MatrixSDK
 			JObject result = new JObject();
 			MatrixRequestError error = mbackend.Post("/_matrix/media/r0/upload",true,data,new Dictionary<string,string>(){{"Content-Type",contentType}},out result);
 			if (!error.IsOk) {
-				throw new Exception (error.ToString());//TODO: Need a better exception
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
 			return result.GetValue("content_uri").ToObject<string>();
+		}
+
+		public void RegisterUserAsAS (string user)
+		{	
+			if(!IsAS){
+				throw new MatrixException("This client is not registered as a application service client. You can't create new appservice users");
+			}
+			JObject request = JObject.FromObject( new {
+				type = "m.login.application_service",
+				user = user
+			});
+
+			JObject result = new JObject();
+
+			MatrixRequestError error = mbackend.Post("/_matrix/client/r0/register",true,request,out result);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
+			}
 		}
 	}
 

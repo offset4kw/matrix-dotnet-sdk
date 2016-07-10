@@ -16,12 +16,23 @@ namespace MatrixSDK.Structures
 		public string room_id;
 		public MatrixEventUnsigned unsigned;
 		public string state_key;
+
 		// Special case for https://matrix.org/docs/spec/r0.0.1/client_server.html#m-room-member
 		public MatrixStrippedState[] invite_room_state;
 
 		public MatrixEvent ()
 		{
 
+		}
+
+		public override string ToString ()
+		{
+			string str = "Event {";
+			foreach (System.Reflection.PropertyInfo prop in typeof(MatrixEvent).GetProperties()) {
+				str += "   " + (prop.Name + ": " + prop.GetValue (this).ToString ());
+			}
+			str += "}";
+			return str;
 		}
 	}
 
@@ -34,7 +45,7 @@ namespace MatrixSDK.Structures
 	/// Do not use this class directly.
 	/// </summary>
 	public class MatrixEventContent{
-		
+
 	}
 
 	public class MatrixTimeline{

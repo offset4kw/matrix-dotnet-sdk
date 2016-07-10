@@ -15,15 +15,17 @@ namespace MatrixSDK.Backends
 	{
 		private string baseurl;
 		private string access_token;
+		private string user_id;
 		private HttpClient client;
 
-		public HttpBackend(string apiurl){
+		public HttpBackend(string apiurl,string user_id = null){
 			baseurl = apiurl;
 			if (baseurl.EndsWith ("/")) {
 				baseurl = baseurl.Substring (0, baseurl.Length - 1);
 			}
 			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
 			client = new HttpClient ();
+			this.user_id = user_id;
 		}
 
 		private bool acceptCertificate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors){
@@ -34,10 +36,14 @@ namespace MatrixSDK.Backends
 			access_token = token;
 		}
 
-		private void getPath(ref string apiPath, bool auth){
+		private void getPath (ref string apiPath, bool auth)
+		{
 			apiPath = baseurl + apiPath;
-			if(auth){
+			if (auth) {
 				apiPath	+= (apiPath.Contains ("?") ? "&" : "?") + "access_token=" + access_token;
+				if (user_id != null) {
+					apiPath += "&user_id="+user_id;
+				}
 			}
 		}
 

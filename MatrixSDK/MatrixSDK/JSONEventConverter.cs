@@ -21,7 +21,8 @@ namespace MatrixSDK
 			{"m.room.name", 				typeof(MatrixMRoomName)},
 			{"m.room.topic", 				typeof(MatrixMRoomTopic)},
 			{"m.room.power_levels", 		typeof(MatrixMRoomPowerLevels)},
-			{"m.room.history_visibility",	typeof(MatrixMRoomHistoryVisibility)}
+			{"m.room.history_visibility",	typeof(MatrixMRoomHistoryVisibility)},
+			{"m.typing",					typeof(MatrixMTyping)}
 		};
 
 		Dictionary<string,Type> messageContentTypes = new Dictionary<string, Type>{
@@ -43,6 +44,17 @@ namespace MatrixSDK
 					}
 				}
 			}
+		}
+
+
+		public void AddMessageType(string name, Type type){
+			messageContentTypes.Add(name,type);
+		}
+
+
+		public void AddEventType (string msgtype, Type type)
+		{
+			contentTypes.Add(msgtype, type);
 		}
 
 		public override bool CanConvert(Type objectType)

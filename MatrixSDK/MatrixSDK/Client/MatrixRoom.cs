@@ -5,6 +5,9 @@ namespace MatrixSDK.Client
 {
 	
 	public delegate void MatrixRoomEventDelegate(MatrixRoom room,MatrixEvent evt);
+	public delegate void MatrixRoomChangeDelegate();
+	public delegate void MatrixRoomRecieptDelegate(string event_id, MatrixReceipts receipts);
+	public delegate void MatrixRoomTypingDelegate(string[] user_ids);
 
 	/// <summary>
 	/// A room that the user has joined on Matrix.
@@ -21,6 +24,8 @@ namespace MatrixSDK.Client
 		public string Name { get; private set; }
 		public string Topic { get; private set; }
 		public string Creator { get; private set; }
+
+
 
 		/// <summary>
 		/// Should this Matrix Room federate with other home servers?
@@ -39,17 +44,26 @@ namespace MatrixSDK.Client
 		/// </summary>
 		public event MatrixRoomEventDelegate OnMessage;
 
+
+		public event MatrixRoomChangeDelegate OnEphemeralChanged;
+		public event MatrixRoomTypingDelegate OnTypingChanged;
+
+		public event MatrixRoomRecieptDelegate OnRecieptsRecieved;
+
+
 		/// <summary>
 		/// Fires when any room message is recieved.
 		/// </summary>
 		public event MatrixRoomEventDelegate OnEvent;
 
 		/// <summary>
-		/// Don't fire OnMessage if the message exceeds this age limit (in milliseconds).
+		/// Don't fire OnMessage if the message exceeds this age limit (in milliseconds). Set to -1 to ignore.
 		/// </summary>
-		public int OnMessageMaximumAge = 5000;
+		public int MessageMaximumAge = -1;
 
 		private List<MatrixMRoomMessage> messages = new List<MatrixMRoomMessage>(MESSAGE_CAPACITY);
+
+		private MatrixEvent[] ephemeral;
 
 		/// <summary>
 		/// Get a list of all the messages recieved so far.
@@ -76,8 +90,9 @@ namespace MatrixSDK.Client
 		/// If a Room recieves a new event, process it in here.
 		/// </summary>
 		/// <param name="evt">New event</param>
-		public void FeedEvent(MatrixEvent evt){
-			Type t = evt.content.GetType();
+		public void FeedEvent (MatrixEvent evt)
+		{
+			Type t = evt.content.GetType ();
 			if (t == typeof(MatrixMRoomCreate)) {
 				Creator = ((MatrixMRoomCreate)evt.content).creator;
 			} else if (t == typeof(MatrixMRoomName)) {
@@ -92,17 +107,16 @@ namespace MatrixSDK.Client
 				JoinRule = ((MatrixMRoomJoinRules)evt.content).join_rule;
 			} else if (t == typeof(MatrixMRoomJoinRules)) {
 				PowerLevels = ((MatrixMRoomPowerLevels)evt.content);
-			} else if (t.IsSubclassOf(typeof(MatrixMRoomMessage))) {
+			} else if (t.IsSubclassOf (typeof(MatrixMRoomMessage))) {
 				messages.Add ((MatrixMRoomMessage)evt.content);
-				if (OnMessage != null ) {
-					if(OnMessageMaximumAge == 0 || evt.age < OnMessageMaximumAge )
-					try
-					{
-						OnMessage.Invoke (this, evt);
-					}
-					catch(Exception e){
-						Console.WriteLine ("A OnMessage handler failed");
-						Console.WriteLine (e);
+				if (OnMessage != null) {
+					if (MessageMaximumAge <= 0 || evt.age < MessageMaximumAge) {
+						try {
+							OnMessage.Invoke (this, evt);
+						} catch (Exception e) {
+							Console.WriteLine ("A OnMessage handler failed");
+							Console.WriteLine (e);
+						}
 					}
 				}
 			}
@@ -111,6 +125,8 @@ namespace MatrixSDK.Client
 				OnEvent.Invoke (this, evt);
 			}
 		}
+
+
 
 		/// <summary>
 		/// Attempt to set the name of the room.
@@ -157,6 +173,26 @@ namespace MatrixSDK.Client
             message.body = notice;
             SendMessage (message);
         }
+        /// <summary>
+        /// Sends a state message.
+        /// </summary>
+        /// <param name="stateMessage">State message.</param>
+        /// <param name="type">Type.</param>
+        /// <param name="key">Key.</param>
+		public void SendState (MatrixRoomStateEvent stateMessage,string type, string key = "")
+		{
+			api.RoomStateSend (ID, type, stateMessage, key);
+		}
+
+		/// <summary>
+		/// Sets whether the current user is typing.
+		/// </summary>
+		/// <param name="typing">Whether the user is typing or not. If false, the timeout key can be omitted.</param>
+		/// <param name="timeout">The length of time in milliseconds to mark this user as typing.</param>
+		public void SetTyping (bool typing, int timeout = 30000)
+		{
+			api.RoomTypingSend(ID,typing,timeout);
+		}
 
 		/// <summary>
 		/// Applies the new power levels.
@@ -189,6 +225,24 @@ namespace MatrixSDK.Client
 		public void LeaveRoom(){
             api.FlushMessageQueue();
 			api.RoomLeave (ID);
+		}
+
+		public void SetEphemeral (MatrixSyncEvents ev)
+		{
+			ephemeral = ev.events;
+			foreach (MatrixEvent evt in ephemeral) {
+				if (evt.type == "m.reciept" && OnRecieptsRecieved != null) {
+					MatrixMReceipt rec = (MatrixMReceipt)evt.content;
+					foreach (KeyValuePair<string,MatrixReceipts> kv in rec.receipts) {
+						OnRecieptsRecieved.Invoke (kv.Key, kv.Value);
+					}
+				} else if (evt.type == "m.typing" && OnTypingChanged != null) {
+					OnTypingChanged.Invoke(((MatrixMTyping)evt.content).user_ids);
+				}
+			}
+			if (OnEphemeralChanged != null) {
+				OnEphemeralChanged.Invoke();
+			}
 		}
 
 	}

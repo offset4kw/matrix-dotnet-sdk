@@ -22,11 +22,6 @@ namespace MatrixSDK.Structures
 		}
 	}
 
-
-}
-
-namespace MatrixSDK
-{
 	public class MatrixReceipts{
 		public Dictionary<string,MatrixReceipt> m_read;
 

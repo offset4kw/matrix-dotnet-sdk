@@ -22,10 +22,11 @@ namespace MatrixSDK
 		public bool IsConnected { get; private set; }
 		public bool RunningInitialSync { get; private set; }
 		public int BadSyncTimeout = 25000;
-
+		public int FailMessageAfter = 300;
 		public string user_id = null;
-		private string syncToken = "";
-		private bool IsAS;
+
+		string syncToken = "";
+		bool IsAS;
 
 		MatrixLoginResponse current_login = null;
 		Thread poll_thread;
@@ -34,6 +35,8 @@ namespace MatrixSDK
 		Random rng;
 
 		static JSONSerializer matrixSerializer = new JSONSerializer ();
+
+		JSONEventConverter event_converter;
 
 		IMatrixAPIBackend mbackend;
 
@@ -58,6 +61,7 @@ namespace MatrixSDK
 			BaseURL = URL;
 
 			rng = new Random (DateTime.Now.Millisecond);
+			event_converter = new JSONEventConverter ();
 			syncToken = token;
 			if (syncToken == "") {
 				RunningInitialSync = true;
@@ -75,23 +79,51 @@ namespace MatrixSDK
 			this.user_id = user_id;
 			BaseURL = URL;
 			rng = new Random (DateTime.Now.Millisecond);
-			matrixSerializer = new JSONSerializer ();
+			event_converter = new JSONEventConverter ();
 		}
 
-        public void FlushMessageQueue(){
-                MatrixAPIPendingEvent evt;
-                while (pendingMessages.TryDequeue(out evt)) {
-                    if (!sendRoomMessage (evt)) {
-                        pendingMessages.Enqueue(evt);
-                    }
-                }
+		public void AddMessageType (string name, Type type)
+		{
+			event_converter.AddMessageType(name,type);
+		}
+
+		public void AddEventType (string msgtype, Type type)
+		{
+			event_converter.AddEventType(msgtype, type); 
+		}
+
+        public void FlushMessageQueue ()
+		{
+			MatrixAPIPendingEvent evt;
+			MatrixRequestError error;
+			while (pendingMessages.TryDequeue (out evt)) {
+				error = sendRoomMessage (evt);
+				if (!error.IsOk) {
+
+					if (error.MatrixErrorCode != MatrixErrorCode.M_UNKNOWN) { //M_UNKNOWN unoffically means it failed to validate.
+						Console.WriteLine("Trying to resend failed message of type " + evt.type);
+						evt.backoff_duration += evt.backoff;
+						evt.backoff = evt.backoff == 0 ? 2: (int)Math.Pow(evt.backoff,2);
+						if (evt.backoff_duration > FailMessageAfter) {
+							evt.backoff = 0;
+							continue; //Give up trying to send	
+						}
+
+						Console.WriteLine(string.Format("Waiting {0} seconds before resending",evt.backoff));
+
+						Thread.Sleep(evt.backoff*1000);
+						pendingMessages.Enqueue (evt);
+
+					}
+				}
+			}
         }
 
 		private void pollThread_Run(){
 			while (shouldRun) {
 				try
 				{
-				ClientSync (true);
+					ClientSync (true);
 				}
 				catch(Exception e){
 					#if DEBUG
@@ -106,6 +138,17 @@ namespace MatrixSDK
 
 		public string GetSyncToken(){
 			return syncToken;
+		}
+
+		public string GetAccessToken ()
+		{
+			if (current_login != null) {
+				return current_login.access_token;
+			}
+			else
+			{
+				return null;
+			}
 		}
 
 		public void ClientTokenRefresh(string refreshToken){
@@ -136,6 +179,7 @@ namespace MatrixSDK
 		public void StopSyncThreads(){
 			shouldRun = false;
 			poll_thread.Join ();
+			FlushMessageQueue();
 		}
 
 		public static JObject ObjectToJson (object data)
@@ -177,17 +221,18 @@ namespace MatrixSDK
 
 		}
 
-		private bool sendRoomMessage(MatrixAPIPendingEvent msg){
+		private MatrixRequestError sendRoomMessage (MatrixAPIPendingEvent msg)
+		{
 			JObject msgData = ObjectToJson (msg.content);
 			JObject result;
-			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString(msg.room_id), msg.type, msg.txnId), true, msgData,out result);
+			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/send/{1}/{2}", System.Uri.EscapeDataString (msg.room_id), msg.type, msg.txnId), true, msgData, out result);
 
 			#if DEBUG
 			if(!error.IsOk){
 				Console.WriteLine (error.GetErrorString());
 			}
 			#endif
-			return error.IsOk;
+			return error;
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-login")]
@@ -214,6 +259,28 @@ namespace MatrixSDK
 			}
 		}
 
+		[MatrixSpec("r0.0.1#put-matrix-client-r0-profile-userid-displayname")]
+		public void ClientSetDisplayName(string userid,string displayname){
+			JObject response;
+			JObject request = new JObject();
+			request.Add("displayname",JToken.FromObject(displayname));
+			MatrixRequestError error = mbackend.Put (string.Format("/_matrix/client/r0/profile/{0}/displayname",Uri.EscapeUriString(userid)),true,request, out response);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
+			}
+		}
+
+		[MatrixSpec("r0.0.1#put-matrix-client-r0-profile-userid-displayname")]
+		public void ClientSetAvatar(string userid,string avatar_url){
+			JObject response;
+			JObject request = new JObject();
+			request.Add("avatar_url",JToken.FromObject(avatar_url));
+			MatrixRequestError error = mbackend.Put (string.Format("/_matrix/client/r0/profile/{0}/avatar_url",Uri.EscapeUriString(userid)),true,request, out response);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
+			}
+		}
+
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-sync")]
 		public void ClientSync(bool ConnectionFailureTimeout = false){
 			JObject response;
@@ -224,7 +291,7 @@ namespace MatrixSDK
 			MatrixRequestError error = mbackend.Get (url,true, out response);
 			if (error.IsOk) {
 				try {
-					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (), new JSONEventConverter ());
+					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (), event_converter);
 					processSync (sync);
 					IsConnected = true;
 				} catch (Exception e) {
@@ -290,10 +357,10 @@ namespace MatrixSDK
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-state-eventtype")]
-		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message){
+		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message,string key = ""){
 			JObject msgData = JObject.FromObject (message);
 			JObject result;
-			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}", System.Uri.EscapeDataString(roomid),type), true, msgData,out result);
+			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}/{2}", System.Uri.EscapeDataString(roomid),type,key), true, msgData,out result);
 			if (!error.IsOk) {
 				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
@@ -311,17 +378,40 @@ namespace MatrixSDK
 
 
 		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid")]
-		public void RoomMessageSend(string roomid,string type,MatrixMRoomMessage message){
+		public void RoomMessageSend (string roomid, string type, MatrixMRoomMessage message)
+		{
 			bool collision = true;
 			MatrixAPIPendingEvent evt = new MatrixAPIPendingEvent ();
 			evt.room_id = roomid;
 			evt.type = type;
 			evt.content = message;
+			if (((MatrixMRoomMessage)evt.content).body == null) {
+				throw new Exception("Missing body in message");
+			}
 			while (collision) {
-				evt.txnId = rng.Next (1,64);
+				evt.txnId = rng.Next (1, 64);
 				collision = pendingMessages.FirstOrDefault (x => x.txnId == evt.txnId) != default(MatrixAPIPendingEvent);
 			}
-			pendingMessages.Enqueue(evt);
+			pendingMessages.Enqueue (evt);
+			if (IsAS) {
+				FlushMessageQueue();
+			}
+		}
+
+		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-receipt-receipttype-eventid")]
+		public void RoomTypingSend (string roomid, bool typing, int timeout = 0)
+		{
+			JObject msgData;
+			JObject result;
+			if (timeout == 0) {
+				msgData = JObject.FromObject (new {typing = typing});
+			} else {
+				msgData = JObject.FromObject(new {typing=typing,timeout=timeout});
+			}
+			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/typing/{1}", System.Uri.EscapeDataString(roomid), System.Uri.EscapeDataString(user_id)), true, msgData,out result);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());//TODO: Need a better exception
+			}
 		}
 
 		public string MediaUpload(string contentType,byte[] data){
@@ -354,6 +444,8 @@ namespace MatrixSDK
 
 	public class MatrixAPIPendingEvent : MatrixEvent{
 		public int txnId;
+		public int backoff = 0;
+		public int backoff_duration = 0;
 	}
 }
 

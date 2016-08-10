@@ -24,7 +24,7 @@ namespace MatrixSDK.Client
 
         public event MatrixInviteDelegate OnInvite;
 
-
+        public string UserID { get { return api.user_id; } }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MatrixSDK.MatrixClient"/> class.
@@ -60,7 +60,6 @@ namespace MatrixSDK.Client
 		public MatrixClient (string URL, string application_token,string userid)
 		{
 			api = new MatrixAPI (URL,application_token,userid);
-
 			try{
 				string[] versions = api.ClientVersions ();
 				if(!MatrixAPI.IsVersionSupported(versions)){
@@ -80,7 +79,16 @@ namespace MatrixSDK.Client
 			return api.GetSyncToken ();
 		}
 
-        public void MatrixClient_OnInvite(string roomid, MatrixEventRoomInvited joined){
+		/// <summary>
+		/// Gets the access token from the API.
+		/// </summary>
+		/// <returns>The access token.</returns>
+		public string GetAccessToken ()
+		{
+			return api.GetAccessToken();
+		}
+
+        private void MatrixClient_OnInvite(string roomid, MatrixEventRoomInvited joined){
             if(OnInvite != null){
                 OnInvite.Invoke(roomid,joined);
             }
@@ -98,6 +106,7 @@ namespace MatrixSDK.Client
 			}
 			joined.state.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
 			joined.timeline.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
+			mroom.SetEphemeral(joined.ephemeral);
 		}
 
 		/// <summary>
@@ -113,6 +122,26 @@ namespace MatrixSDK.Client
 			api.StartSyncThreads ();
 		}
 
+		public void LoginWithToken (string username, string token)
+		{
+			api.ClientLogin (new MatrixLoginToken (username, token));
+			api.ClientSync ();
+			api.StartSyncThreads ();
+		}
+
+		/// <summary>
+		/// Get information about this user from the server. 
+		/// </summary>
+		/// <returns>A MatrixUser object</returns>
+		/// <param name="userid">User ID</param>
+		public MatrixUser GetUser(){
+			MatrixProfile profile = api.ClientProfile (api.user_id);
+			if (profile != null) {
+				return new MatrixUser (profile, api.user_id);
+			}
+			return null;
+		}
+
 		/// <summary>
 		/// Get information about a user from the server. 
 		/// </summary>
@@ -124,6 +153,16 @@ namespace MatrixSDK.Client
 				return new MatrixUser (profile, userid);
 			}
 			return null;
+		}
+
+		public void SetDisplayName (string displayname)
+		{
+			api.ClientSetDisplayName(api.user_id,displayname);
+		}
+
+		public void SetAvatar (string displayname)
+		{
+			api.ClientSetAvatar(api.user_id,displayname);
 		}
 
 		/// <summary>
@@ -164,7 +203,7 @@ namespace MatrixSDK.Client
 		}
 
 		/// <summary>
-		/// Join a matrix room.
+		/// Join a matrix room. If the user has already joined this room, do nothing.
 		/// </summary>
 		/// <returns>The room.</returns>
 		/// <param name="roomid">roomid or alias</param>
@@ -218,6 +257,26 @@ namespace MatrixSDK.Client
 		}
 
 		/// <summary>
+		/// Add a new type of message to be decoded during sync operations.
+		/// </summary>
+		/// <param name="msgtype">msgtype.</param>
+		/// <param name="type">Type that inheritis MatrixMRoomMessage</param>
+		public void AddRoomMessageType (string msgtype, Type type)
+		{
+			api.AddMessageType(msgtype, type);
+		}
+
+		/// <summary>
+		/// Add a new type of state event to be decoded during sync operations.
+		/// </summary>
+		/// <param name="msgtype">msgtype.</param>
+		/// <param name="type">Type that inheritis MatrixMRoomMessage</param>
+		public void AddStateEventType (string msgtype, Type type)
+		{
+			api.AddEventType(msgtype, type);
+		}
+
+		/// <summary>
 		/// Releases all resource used by the <see cref="MatrixSDK.Client.MatrixClient"/> object.
 		/// In addition, this will stop the sync thread.
 		/// </summary>
@@ -226,6 +285,7 @@ namespace MatrixSDK.Client
 		/// calling <see cref="Dispose"/>, you must release all references to the <see cref="MatrixSDK.Client.MatrixClient"/>
 		/// so the garbage collector can reclaim the memory that the <see cref="MatrixSDK.Client.MatrixClient"/> was occupying.</remarks>
 		public void Dispose(){
+
 			api.StopSyncThreads ();
 		}
 	}

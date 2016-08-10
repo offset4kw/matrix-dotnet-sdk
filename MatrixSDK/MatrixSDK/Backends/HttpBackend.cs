@@ -36,7 +36,7 @@ namespace MatrixSDK.Backends
 			access_token = token;
 		}
 
-		private void getPath (ref string apiPath, bool auth)
+		private string getPath (string apiPath, bool auth)
 		{
 			apiPath = baseurl + apiPath;
 			if (auth) {
@@ -45,6 +45,7 @@ namespace MatrixSDK.Backends
 					apiPath += "&user_id="+user_id;
 				}
 			}
+			return apiPath;
 		}
 
 		private MatrixRequestError requestWrap (Task<HttpResponseMessage> task, out JObject result){
@@ -55,19 +56,19 @@ namespace MatrixSDK.Backends
 			}
 			catch(MatrixServerError e){
 				result = null;
-				return new MatrixRequestError (e.ErrorCodeStr, e.ErrorCode, HttpStatusCode.OK);
+				return new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK);
 			}
 		}
 
 		public MatrixRequestError Get  (string apiPath, bool authenticate, out JObject result){
-			getPath (ref apiPath,authenticate);
+			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
 			return requestWrap (task, out result);
 		}
 
 		public MatrixRequestError Put(string apiPath, bool authenticate, JObject data, out JObject result){
 			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
-			getPath (ref apiPath,authenticate);
+			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
 			return requestWrap (task, out result);
 		}
@@ -85,7 +86,7 @@ namespace MatrixSDK.Backends
 				content.Headers.Add(header.Key,header.Value);
 			}
 
-			getPath (ref apiPath,authenticate);
+			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
 			return requestWrap (task, out result);
 		}
@@ -102,7 +103,7 @@ namespace MatrixSDK.Backends
 				content.Headers.Add(header.Key,header.Value);
 			}
 
-			getPath (ref apiPath,authenticate);
+			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
 			return requestWrap (task, out result);
 		}

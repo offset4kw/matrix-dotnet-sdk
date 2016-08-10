@@ -68,23 +68,25 @@ namespace MatrixSDK.AppService
 		public MatrixClient GetClientAsUser (string user = null)
 		{
 			if (user != null) {
-				if (!user.EndsWith (":" + Domain)) {
-					user = user + ":" + Domain;
+				if (user.EndsWith (":" + Domain)) {
+					user = user.Substring(0,user.LastIndexOf(':'));
 				}
-				if (!user.StartsWith ("@")) {
-					user = "@" + user;
+				if (user.StartsWith ("@")) {
+					user = user.Substring(1);
 				}
 				CheckAndPerformRegistration (user);
+				user = "@" + user;
+				user = user + ":" + Domain;
 			} else {
 				user = botuser_id;
 			}
-			//Check if registered
+
 			return new MatrixClient(HsUrl,Registration.AppServiceToken,user);
 		}
 
 		private void CheckAndPerformRegistration (string user)
 		{
-			MatrixProfile profile = api.ClientProfile (user);
+			MatrixProfile profile = api.ClientProfile ("@"+user+":"+Domain);
 			if (profile == null) {
 				api.RegisterUserAsAS(user);
 			}

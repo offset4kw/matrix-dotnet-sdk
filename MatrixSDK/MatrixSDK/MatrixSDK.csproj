@@ -75,6 +75,7 @@
     <Compile Include="AppService\MatrixAppservice.cs" />
     <Compile Include="AppService\ServiceRegistration.cs" />
     <Compile Include="Structures\MatrixTyping.cs" />
+    <Compile Include="Backends\TestHttpClient.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

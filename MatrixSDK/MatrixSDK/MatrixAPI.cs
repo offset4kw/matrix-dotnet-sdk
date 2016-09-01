@@ -82,6 +82,13 @@ namespace MatrixSDK
 			event_converter = new JSONEventConverter ();
 		}
 
+		public MatrixAPI ()
+		{
+
+			IsAS = false;
+			mbackend = new HttpBackend ();
+		}
+
 		public void AddMessageType (string name, Type type)
 		{
 			event_converter.AddMessageType(name,type);
@@ -295,6 +302,7 @@ namespace MatrixSDK
 					processSync (sync);
 					IsConnected = true;
 				} catch (Exception e) {
+					Console.WriteLine(e.InnerException);
 					throw new MatrixException ("Could not decode sync", e);
 				}
 			} else if (ConnectionFailureTimeout) {
@@ -358,7 +366,7 @@ namespace MatrixSDK
 
 		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-state-eventtype")]
 		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message,string key = ""){
-			JObject msgData = JObject.FromObject (message);
+			JObject msgData = ObjectToJson (message);
 			JObject result;
 			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}/{2}", System.Uri.EscapeDataString(roomid),type,key), true, msgData,out result);
 			if (!error.IsOk) {

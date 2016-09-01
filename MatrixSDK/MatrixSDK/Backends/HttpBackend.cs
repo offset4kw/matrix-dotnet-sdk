@@ -18,13 +18,13 @@ namespace MatrixSDK.Backends
 		private string user_id;
 		private HttpClient client;
 
-		public HttpBackend(string apiurl,string user_id = null){
+		public HttpBackend(string apiurl, string user_id = null, HttpClient client = null){
 			baseurl = apiurl;
 			if (baseurl.EndsWith ("/")) {
 				baseurl = baseurl.Substring (0, baseurl.Length - 1);
 			}
 			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
-			client = new HttpClient ();
+			this.client = client == null ? new HttpClient() : client;
 			this.user_id = user_id;
 		}
 

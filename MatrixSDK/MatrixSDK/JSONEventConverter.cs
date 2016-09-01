@@ -61,7 +61,7 @@ namespace MatrixSDK
 		{
 			return objectType == typeof(MatrixEvent);
 		}
-
+		
 		public Type MessageContentType(string type){
 			Type otype;
 			if (messageContentTypes.TryGetValue (type, out otype)) {
@@ -120,6 +120,7 @@ namespace MatrixSDK
 			get {
 				return false;
 			}
+
 		}
 
 		public override void WriteJson(JsonWriter writer, 

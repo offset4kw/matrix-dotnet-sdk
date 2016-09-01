@@ -71,6 +71,22 @@ namespace MatrixSDK.Client
 				throw new MatrixException("An exception occured while trying to connect",e);
 			}
 		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="MatrixSDK.Client.MatrixClient"/> class for testing.
+		/// </summary>
+		public MatrixClient (){
+			try{
+				api = new MatrixAPI();
+				api.SyncJoinEvent += MatrixClient_OnEvent;
+				api.SyncInviteEvent += MatrixClient_OnInvite;
+			}
+			catch(MatrixException e){
+				throw new MatrixException("An exception occured while trying to connect",e);
+			}
+
+		}
+
 		/// <summary>
 		/// Gets the sync token from the API. 
 		/// </summary>
@@ -157,12 +173,12 @@ namespace MatrixSDK.Client
 
 		public void SetDisplayName (string displayname)
 		{
-			api.ClientSetDisplayName(api.user_id,displayname);
+			api.ClientSetDisplayName(api.user_id, displayname);
 		}
 
-		public void SetAvatar (string displayname)
+		public void SetAvatar (string avatar)
 		{
-			api.ClientSetAvatar(api.user_id,displayname);
+			api.ClientSetAvatar(api.user_id, avatar);
 		}
 
 		/// <summary>

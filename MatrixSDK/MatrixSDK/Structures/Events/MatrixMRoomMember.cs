@@ -10,7 +10,7 @@ namespace MatrixSDK.Structures
 		Ban
 	}
 
-	public class MatrixMRoomMember : MatrixEventContent
+	public class MatrixMRoomMember : MatrixRoomStateEvent
 	{
 		public MatrixInvite third_party_invite;
 		public EMatrixRoomMembership membership;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MatrixSDK.Structures;
+using MatrixSDK.Exceptions;
 namespace MatrixSDK.Client
 {
 	
@@ -8,6 +9,7 @@ namespace MatrixSDK.Client
 	public delegate void MatrixRoomChangeDelegate();
 	public delegate void MatrixRoomRecieptDelegate(string event_id, MatrixReceipts receipts);
 	public delegate void MatrixRoomTypingDelegate(string[] user_ids);
+	public delegate void MatrixRoomMemberEvent(string user_id, MatrixMRoomMember member);
 
 	/// <summary>
 	/// A room that the user has joined on Matrix.
@@ -25,7 +27,7 @@ namespace MatrixSDK.Client
 		public string Topic { get; private set; }
 		public string Creator { get; private set; }
 
-
+		public Dictionary<string,MatrixMRoomMember> Members { get; private set; }
 
 		/// <summary>
 		/// Should this Matrix Room federate with other home servers?
@@ -44,11 +46,15 @@ namespace MatrixSDK.Client
 		/// </summary>
 		public event MatrixRoomEventDelegate OnMessage;
 
-
 		public event MatrixRoomChangeDelegate OnEphemeralChanged;
 		public event MatrixRoomTypingDelegate OnTypingChanged;
-
 		public event MatrixRoomRecieptDelegate OnRecieptsRecieved;
+
+		public event MatrixRoomMemberEvent OnUserJoined;
+		public event MatrixRoomMemberEvent OnUserChange;
+		public event MatrixRoomMemberEvent OnUserLeft;
+		public event MatrixRoomMemberEvent OnUserInvited;
+		public event MatrixRoomMemberEvent OnUserBanned;
 
 
 		/// <summary>
@@ -83,6 +89,7 @@ namespace MatrixSDK.Client
 		{
 			ID = roomid;
 			api = API;
+			Members = new Dictionary<string, MatrixMRoomMember>();
 		}
 
 		/// <summary>
@@ -107,6 +114,30 @@ namespace MatrixSDK.Client
 				JoinRule = ((MatrixMRoomJoinRules)evt.content).join_rule;
 			} else if (t == typeof(MatrixMRoomJoinRules)) {
 				PowerLevels = ((MatrixMRoomPowerLevels)evt.content);
+			} else if (t == typeof(MatrixMRoomMember)) {
+				MatrixMRoomMember member = (MatrixMRoomMember)evt.content;
+				if (!api.RunningInitialSync) {
+					//Handle new join,leave etc
+					MatrixRoomMemberEvent Event = null;
+					switch (member.membership) {
+						case EMatrixRoomMembership.Invite:
+							Event = OnUserInvited;
+							break;
+						case EMatrixRoomMembership.Join:
+							Event = Members.ContainsKey (evt.state_key) ? OnUserChange : OnUserJoined;
+							break;
+						case EMatrixRoomMembership.Leave:
+							Event = OnUserLeft;
+							break;
+						case EMatrixRoomMembership.Ban:
+							Event = OnUserBanned;
+							break;
+					}
+					if (Event != null) {
+						Event.Invoke(evt.state_key, member);
+					}
+				}
+				Members [evt.state_key] = member;
 			} else if (t.IsSubclassOf (typeof(MatrixMRoomMessage))) {
 				messages.Add ((MatrixMRoomMessage)evt.content);
 				if (OnMessage != null) {
@@ -225,6 +256,26 @@ namespace MatrixSDK.Client
 		public void LeaveRoom(){
             api.FlushMessageQueue();
 			api.RoomLeave (ID);
+		}
+
+		public void SetDisplayName (string displayname)
+		{
+			MatrixMRoomMember member;
+			if (!Members.TryGetValue (api.user_id, out member)) {
+				throw new MatrixException("Couldn't find the users membership event");
+			}
+			member.displayname = displayname;
+			SendState(member, "m.room.member", api.user_id);
+		}
+
+		public void SetAvatar (string avatar)
+		{
+			MatrixMRoomMember member;
+			if (!Members.TryGetValue (api.user_id, out member)) {
+				throw new MatrixException("Couldn't find the users membership event");
+			}
+			member.avatar_url = avatar;
+			SendState(member, "m.room.member", api.user_id);
 		}
 
 		public void SetEphemeral (MatrixSyncEvents ev)

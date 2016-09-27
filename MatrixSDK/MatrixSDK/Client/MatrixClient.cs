@@ -33,9 +33,9 @@ namespace MatrixSDK.Client
 		/// </summary>
 		/// <param name="URL">URL before /_matrix/</param>
 		/// <param name="syncToken"> If you stored the sync token before, you can set it for the API here</param>
-		public MatrixClient (string URL,string syncToken = "")
+		public MatrixClient (string URL, string syncToken = "")
 		{
-			api = new MatrixAPI (URL,syncToken);
+			api = new MatrixAPI (URL, syncToken);
 			try{
 				string[] versions = api.ClientVersions ();
 				if(!MatrixAPI.IsVersionSupported(versions)){
@@ -43,12 +43,15 @@ namespace MatrixSDK.Client
 					Console.WriteLine("Client supports up to "+MatrixAPI.VERSION);
 				}
 				api.SyncJoinEvent += MatrixClient_OnEvent;
-                api.SyncInviteEvent += MatrixClient_OnInvite;
+				api.SyncInviteEvent += MatrixClient_OnInvite;
+
 			}
 			catch(MatrixException e){
 				throw new MatrixException("An exception occured while trying to connect",e);
 			}
 		}
+
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MatrixSDK.Client.MatrixClient"/> class.
 		/// This intended for Application Services only who want to preform actions as another user.
@@ -104,6 +107,11 @@ namespace MatrixSDK.Client
 			return api.GetAccessToken();
 		}
 
+		public MatrixLoginResponse GetCurrentLogin ()
+		{
+			return api.GetCurrentLogin();
+		}
+
         private void MatrixClient_OnInvite(string roomid, MatrixEventRoomInvited joined){
             if(OnInvite != null){
                 OnInvite.Invoke(roomid,joined);
@@ -138,11 +146,36 @@ namespace MatrixSDK.Client
 			api.StartSyncThreads ();
 		}
 
+		/// <summary>
+		/// Login with a given username and token.
+		/// This method will also start a sync with the server
+		/// Currently, this is the only login method the SDK supports.
+		/// </summary>
+		/// <param name="username">Username</param>
+		/// <param name="token">Access Token</param>
 		public void LoginWithToken (string username, string token)
 		{
 			api.ClientLogin (new MatrixLoginToken (username, token));
 			api.ClientSync ();
 			api.StartSyncThreads ();
+		}
+
+		/// <summary>
+		/// Use existing login information when connecting to Matrix.
+		/// </summary>
+		/// <param name="user_id">Full Matrix user id.</param>
+		/// <param name="access_token">Access token.</param>
+		/// <param name="refresh_token">Refresh token.</param>
+		public void UseExistingToken (string user_id, string access_token, string refresh_token = null)
+		{
+			api.SetLogin(new MatrixLoginResponse(){
+				user_id = user_id,
+				access_token = access_token,
+				refresh_token = refresh_token,
+				home_server = api.BaseURL
+			});
+			api.ClientSync();
+			api.StartSyncThreads();
 		}
 
 		/// <summary>

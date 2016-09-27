@@ -53,13 +53,12 @@ namespace MatrixSDK
 		public MatrixAPI (string URL, string token = "")
 		{
 			if (!Uri.IsWellFormedUriString (URL, UriKind.Absolute)) {
-				throw new MatrixException("URL is not valid");
+				throw new MatrixException ("URL is not valid");
 			}
 
 			IsAS = false;
 			mbackend = new HttpBackend (URL);
 			BaseURL = URL;
-
 			rng = new Random (DateTime.Now.Millisecond);
 			event_converter = new JSONEventConverter ();
 			syncToken = token;
@@ -86,8 +85,9 @@ namespace MatrixSDK
 		{
 
 			IsAS = false;
-			mbackend = new HttpBackend ();
+			mbackend = new HttpBackend ("");
 		}
+
 
 		public void AddMessageType (string name, Type type)
 		{
@@ -156,6 +156,17 @@ namespace MatrixSDK
 			{
 				return null;
 			}
+		}
+
+		public MatrixLoginResponse GetCurrentLogin ()
+		{
+			return current_login;
+		}
+
+		public void SetLogin(MatrixLoginResponse response){
+			current_login = response;
+			user_id = response.user_id;
+			mbackend.SetAccessToken(response.access_token);			
 		}
 
 		public void ClientTokenRefresh(string refreshToken){
@@ -248,8 +259,7 @@ namespace MatrixSDK
 			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
 			if (error.IsOk) {
 				current_login = result.ToObject<MatrixLoginResponse> ();
-				user_id = current_login.user_id;
-				mbackend.SetAccessToken (current_login.access_token);
+				SetLogin(current_login);
 			} else {
 				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}

@@ -1,8 +1,19 @@
   <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <PackageId>Half-Shot.Matrix</PackageId>
     <AssemblyName>Matrix</AssemblyName>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <Version>0.1.0</Version>
+    <Authors>Half-Shot</Authors>
+    <Owners>Half-Shot</Owners>
+    <Title>Matrix.org SDK</Title>
+    <PackageLicenseUrl>https://github.com/Half-Shot/matrix-dotnet-sdk/blob/dotnet-core/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Half-Shot/matrix-dotnet-sdk</PackageProjectUrl>
+    <Description>This SDK provides a common interface to the Matrix.org APIs and types.</Description>
+    <PackageReleaseNotes>Initial package release.</PackageReleaseNotes>
+    <Copyright>Copyright 2017</Copyright>
+    <PackageTags>Matrix SDK</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3"/>

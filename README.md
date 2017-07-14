@@ -4,9 +4,12 @@ This SDK provides a wrapper around the Client>Server API for the Matrix.org Spec
 
 It is not yet a *complete* implementation, but it is considered usable enough for bots and basic clients.
 
+
 ## How to Use
 
-A nuget exists for this project at https://www.nuget.org/packages/MatrixSDK.dll/1.0.0
+[![Build Status](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk.svg?branch=dotnet-core)](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk)
+
+A nuget exists for this project at https://www.nuget.org/packages/Half-Shot.Matrix
 
 A (very barebones) examples is in the solution file, but you will almost certainly need more. 
 

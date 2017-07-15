@@ -14,10 +14,14 @@
     <PackageReleaseNotes>Initial package release.</PackageReleaseNotes>
     <Copyright>Copyright 2017</Copyright>
     <PackageTags>Matrix SDK</PackageTags>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3"/>
     <PackageReference Include="YamlDotNet" Version="4.2.0"/>
     <PackageReference Include="NLog" Version="5.0.0-beta09"/>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="**\*.cs" Exclude="bin\**;obj\**;Tests\**\*"/>
   </ItemGroup>
 </Project>

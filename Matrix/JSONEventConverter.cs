@@ -93,7 +93,7 @@ namespace Matrix
 				#if DEBUG
 				Console.WriteLine ("Unknown Event:" + type);
 				#endif
-				return new MatrixEventContent();
+				return null;
 			}
 		}
 

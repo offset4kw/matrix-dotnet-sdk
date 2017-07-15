@@ -6,7 +6,7 @@ namespace Matrix.Structures
 	{
 		/// <summary>
 		/// Following http://matrix.org/docs/spec/r0.0.1/client_server.html#get-matrix-client-r0-sync
-		/// </summary>	
+		/// </summary>
 		public MatrixEventContent content;
 		public Int64 origin_server_ts;
 		public Int64 age;
@@ -34,6 +34,7 @@ namespace Matrix.Structures
 			str += "}";
 			return str;
 		}
+
 	}
 
 	public class MatrixEventUnsigned{
@@ -41,10 +42,11 @@ namespace Matrix.Structures
 		public Int64 age;
 		public string transaction_id;
 	}
+
 	/// <summary>
 	/// Do not use this class directly.
 	/// </summary>
-	public class MatrixEventContent{
+	public abstract class MatrixEventContent{
 
 	}
 
@@ -54,4 +56,3 @@ namespace Matrix.Structures
 		public MatrixEvent[] events;
 	}
 }
-

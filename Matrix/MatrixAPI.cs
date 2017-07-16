@@ -21,8 +21,9 @@ namespace Matrix
 		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
 		public virtual bool RunningInitialSync { get; private set; }
-		public int BadSyncTimeout = 25000;
-		public int FailMessageAfter = 300;
+		public virtual string BaseURL  { get; private set; }
+		public int BadSyncTimeout { get; set; } = 25000;
+		public int FailMessageAfter { get; set; } = 300;
 		public string user_id = null;
 
 		string syncToken = "";
@@ -40,7 +41,6 @@ namespace Matrix
 
 		IMatrixAPIBackend mbackend;
 
-		public readonly string BaseURL;
 
         public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
         public event MatrixAPIRoomInviteDelegate SyncInviteEvent;
@@ -48,7 +48,7 @@ namespace Matrix
 		/// <summary>
 		/// Timeout in seconds between sync requests.
 		/// </summary>
-		public int SyncTimeout = 10000;
+		public int SyncTimeout {get;set;} = 10000;
 
 		public MatrixAPI (string URL, string token = "")
 		{
@@ -83,7 +83,6 @@ namespace Matrix
 
 		public MatrixAPI ()
 		{
-
 			IsAS = false;
 			mbackend = new HttpBackend ("");
 		}

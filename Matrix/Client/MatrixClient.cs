@@ -35,7 +35,8 @@ namespace Matrix.Client
 		/// <param name="syncToken"> If you stored the sync token before, you can set it for the API here</param>
 		public MatrixClient (string URL, string syncToken = "")
 		{
-			api = new MatrixAPI (URL, syncToken);
+			api = new MatrixAPI (URL);
+			api.SetSyncToken(syncToken);
 			try{
 				string[] versions = api.ClientVersions ();
 				if(!MatrixAPI.IsVersionSupported(versions)){
@@ -62,7 +63,7 @@ namespace Matrix.Client
 		/// <param name="userid">Userid as the user you intend to go as.</param>
 		public MatrixClient (string URL, string application_token,string userid)
 		{
-			api = new MatrixAPI (URL,application_token,userid);
+			api = new MatrixAPI (URL,application_token, userid);
 			try{
 				string[] versions = api.ClientVersions ();
 				if(!MatrixAPI.IsVersionSupported(versions)){
@@ -78,16 +79,10 @@ namespace Matrix.Client
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Matrix.Client.MatrixClient"/> class for testing.
 		/// </summary>
-		public MatrixClient (){
-			try{
-				api = new MatrixAPI();
-				api.SyncJoinEvent += MatrixClient_OnEvent;
-				api.SyncInviteEvent += MatrixClient_OnInvite;
-			}
-			catch(MatrixException e){
-				throw new MatrixException("An exception occured while trying to connect",e);
-			}
-
+		public MatrixClient (MatrixAPI api){
+			this.api = api;
+			api.SyncJoinEvent += MatrixClient_OnEvent;
+			api.SyncInviteEvent += MatrixClient_OnInvite;
 		}
 
 		/// <summary>
@@ -334,7 +329,6 @@ namespace Matrix.Client
 		/// calling <see cref="Dispose"/>, you must release all references to the <see cref="Matrix.Client.MatrixClient"/>
 		/// so the garbage collector can reclaim the memory that the <see cref="Matrix.Client.MatrixClient"/> was occupying.</remarks>
 		public void Dispose(){
-
 			api.StopSyncThreads ();
 		}
 	}

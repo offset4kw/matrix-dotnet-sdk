@@ -48,7 +48,7 @@ namespace Matrix.AppService
 			botuser_id = "@"+ registration.Localpart + ":"+Domain;
 			urlMatcher = new Regex ("\\/(rooms|transactions|users)\\/(.+)\\?access_token=(.+)", RegexOptions.Compiled | RegexOptions.ECMAScript);
 
-			api = new MatrixAPI (url,registration.AppServiceToken,null);
+			api = new MatrixAPI (url,registration.AppServiceToken, "");
 
 		}
 

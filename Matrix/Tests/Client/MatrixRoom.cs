@@ -1,5 +1,6 @@
 using System;
 using NUnit.Framework;
+using Matrix.Exceptions;
 using Matrix.Client;
 using Matrix.Structures;
 using Moq;
@@ -93,8 +94,7 @@ namespace Matrix.Tests
 
         [Test]
         public void FeedEventRoomMemberTest() {
-            var mock = new Mock<MatrixAPI>();
-            mock.Setup(f => f.RunningInitialSync).Returns(false);
+            var mock = Utils.MockAPI();
             MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
             var ev = new MatrixMRoomMember() {
                 membership = EMatrixRoomMembership.Join
@@ -106,12 +106,12 @@ namespace Matrix.Tests
 
         [Test]
         public void FeedEventRoomMemberNoFireEventsTest() {
-            var mock = new Mock<MatrixAPI>();
-            mock.Setup(f => f.RunningInitialSync).Returns(true);
+            var mock = Utils.MockAPI();
             MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
             var ev = new MatrixMRoomMember() {
                 membership = EMatrixRoomMembership.Join
             };
+            mock.Setup(f => f.RunningInitialSync).Returns(true);
             bool did_fire = false;
             room.OnUserJoined += (n, a) => did_fire = true;
             room.FeedEvent(Utils.MockEvent(ev, state_key:"@foobar:localhost"));
@@ -122,8 +122,7 @@ namespace Matrix.Tests
 
         [Test]
         public void FeedEventRoomMemberFireEventsTest() {
-            var mock = new Mock<MatrixAPI>();
-            mock.Setup(f => f.RunningInitialSync).Returns(false);
+            var mock = Utils.MockAPI();
             MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
             bool[] did_fire = new bool[5];
             int fire_count = 0;
@@ -195,6 +194,49 @@ namespace Matrix.Tests
             Assert.That(did_fire, Is.True, "Subclassed message accepted.");
             // OnEvent should fire each time
             Assert.That(fire_count, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void SetMemberDisplayNameNoMemberTest() {
+            var mock = Utils.MockAPI();
+            MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
+            Assert.That(
+                () => room.SetMemberDisplayName("@foobar:localhost"),
+                Throws.TypeOf<MatrixException>()
+                .With.Property("Message").EqualTo("Couldn't find the user's membership event")
+            );        }
+
+        [Test]
+        public void SetMemberAvatarNoMemberTest() {
+            var mock = Utils.MockAPI();
+            MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
+            Assert.That(
+                () => room.SetMemberAvatar("@foobar:localhost"),
+                Throws.TypeOf<MatrixException>()
+                .With.Property("Message").EqualTo("Couldn't find the user's membership event")
+            );
+        }
+
+        [Test]
+        public void SetMemberDisplayNameTest() {
+            var mock = Utils.MockAPI();
+            MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
+            var ev = new MatrixMRoomMember() {
+                membership = EMatrixRoomMembership.Join,
+            };
+            room.FeedEvent(Utils.MockEvent(ev, state_key:"@foobar:localhost"));
+            room.SetMemberDisplayName("@foobar:localhost");
+        }
+
+        [Test]
+        public void SetMemberAvatarTest() {
+            var mock = Utils.MockAPI();
+            MatrixRoom room = new MatrixRoom((MatrixAPI)mock.Object, "!abc:localhost");
+            var ev = new MatrixMRoomMember() {
+                membership = EMatrixRoomMembership.Join,
+            };
+            room.FeedEvent(Utils.MockEvent(ev, state_key:"@foobar:localhost"));
+            room.SetMemberAvatar("@foobar:localhost");
         }
     }   
 }

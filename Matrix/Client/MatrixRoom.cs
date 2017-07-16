@@ -262,21 +262,21 @@ namespace Matrix.Client
             api.RoomLeave (ID);
         }
 
-        public void SetDisplayName (string displayname)
+        public void SetMemberDisplayName (string displayname)
         {
             MatrixMRoomMember member;
             if (!Members.TryGetValue (api.user_id, out member)) {
-                throw new MatrixException("Couldn't find the users membership event");
+                throw new MatrixException("Couldn't find the user's membership event");
             }
             member.displayname = displayname;
             SendState(member, "m.room.member", api.user_id);
         }
 
-        public void SetAvatar (string avatar)
+        public void SetMemberAvatar (string avatar)
         {
             MatrixMRoomMember member;
             if (!Members.TryGetValue (api.user_id, out member)) {
-                throw new MatrixException("Couldn't find the users membership event");
+                throw new MatrixException("Couldn't find the user's membership event");
             }
             member.avatar_url = avatar;
             SendState(member, "m.room.member", api.user_id);

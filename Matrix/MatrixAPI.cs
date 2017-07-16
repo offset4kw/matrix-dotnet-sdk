@@ -20,11 +20,11 @@ namespace Matrix
 	{
 		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
-		public virtual bool RunningInitialSync { get; private set; }
+		public virtual bool RunningInitialSync { get; private set; } = true;
 		public virtual string BaseURL  { get; private set; }
 		public int BadSyncTimeout { get; set; } = 25000;
 		public int FailMessageAfter { get; set; } = 300;
-		public string user_id = null;
+		public virtual string user_id {get; set;} = null;
 
 		string syncToken = "";
 		bool IsAS;
@@ -50,7 +50,7 @@ namespace Matrix
 		/// </summary>
 		public int SyncTimeout {get;set;} = 10000;
 
-		public MatrixAPI (string URL, string token = "")
+		public MatrixAPI (string URL)
 		{
 			if (!Uri.IsWellFormedUriString (URL, UriKind.Absolute)) {
 				throw new MatrixException ("URL is not valid");
@@ -61,10 +61,6 @@ namespace Matrix
 			BaseURL = URL;
 			rng = new Random (DateTime.Now.Millisecond);
 			event_converter = new JSONEventConverter ();
-			syncToken = token;
-			if (syncToken == "") {
-				RunningInitialSync = true;
-			}
 		}
 
 		public MatrixAPI(string URL, string application_token, string user_id){
@@ -81,10 +77,17 @@ namespace Matrix
 			event_converter = new JSONEventConverter ();
 		}
 
-		public MatrixAPI ()
+		public MatrixAPI (string URL, IMatrixAPIBackend backend)
 		{
-			IsAS = false;
-			mbackend = new HttpBackend ("");
+			if (!Uri.IsWellFormedUriString (URL, UriKind.Absolute)) {
+				throw new MatrixException("URL is not valid");
+			}
+
+			IsAS = true;
+			mbackend = backend;
+			BaseURL = URL;
+			rng = new Random (DateTime.Now.Millisecond);
+			event_converter = new JSONEventConverter ();
 		}
 
 
@@ -140,6 +143,11 @@ namespace Matrix
                 FlushMessageQueue();
 				Thread.Sleep(250);
 			}
+		}
+
+		public void SetSyncToken(string synctoken){
+			syncToken = synctoken;
+			RunningInitialSync = false;
 		}
 
 		public string GetSyncToken(){
@@ -374,7 +382,7 @@ namespace Matrix
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-state-eventtype")]
-		public void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message,string key = ""){
+		public virtual void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message,string key = ""){
 			JObject msgData = ObjectToJson (message);
 			JObject result;
 			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/state/{1}/{2}", System.Uri.EscapeDataString(roomid),type,key), true, msgData,out result);

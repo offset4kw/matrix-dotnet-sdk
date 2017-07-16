@@ -140,15 +140,17 @@ namespace Matrix.Client
                     }
                 }
                 Members [evt.state_key] = member;
-            } else if (t.IsSubclassOf (typeof(MatrixMRoomMessage))) {
+            } else if (typeof(MatrixMRoomMessage).IsAssignableFrom (t)) {
                 messages.Add ((MatrixMRoomMessage)evt.content);
                 if (OnMessage != null) {
-                    if (MessageMaximumAge <= 0 || evt.age < MessageMaximumAge) {
+                    if (MessageMaximumAge <= 0 || evt.age <= MessageMaximumAge) {
                         try {
                             OnMessage.Invoke (this, evt);
                         } catch (Exception e) {
+                            #if DEBUG
                             Console.WriteLine ("A OnMessage handler failed");
                             Console.WriteLine (e);
+                            #endif
                         }
                     }
                 }

@@ -19,7 +19,7 @@ namespace Matrix.Client
 			return mxcurl;
 		}
 
-		public string GetThumbnailURL(int width,int height,string method = "crop"){
+		public string GetThumbnailUrl(int width,int height,string method = "crop"){
 			return String.Format("{0}/_matrix/media/r0/thumbnail/{1}?width={2}&height={3}&method={4}",baseurl,mxcurl.Substring(6),width,height,method);
 		}
 

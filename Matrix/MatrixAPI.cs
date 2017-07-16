@@ -20,7 +20,7 @@ namespace Matrix
 	{
 		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
-		public bool RunningInitialSync { get; private set; }
+		public virtual bool RunningInitialSync { get; private set; }
 		public int BadSyncTimeout = 25000;
 		public int FailMessageAfter = 300;
 		public string user_id = null;

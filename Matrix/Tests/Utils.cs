@@ -24,6 +24,9 @@ namespace Matrix.Tests
             var mock = new Mock<MatrixAPI>("https://localhost");
             mock.Setup(f => f.user_id).Returns("@foobar:localhost");
             mock.Setup(f => f.BaseURL).Returns("https://localhost");
+            mock.Setup(f => f.GetSyncToken()).Returns("AGoodSyncToken");
+            mock.Setup(f => f.GetAccessToken()).Returns("AGoodAccessToken");
+            mock.Setup(f => f.GetCurrentLogin()).Returns(new MatrixLoginResponse());
             mock.Setup(f => f.RunningInitialSync).Returns(false);
             mock.Setup(f => f.RoomStateSend(
                 It.IsAny<string>(),

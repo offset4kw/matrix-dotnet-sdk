@@ -150,11 +150,11 @@ namespace Matrix
 			RunningInitialSync = false;
 		}
 
-		public string GetSyncToken(){
+		public virtual string GetSyncToken(){
 			return syncToken;
 		}
 
-		public string GetAccessToken ()
+		public virtual string GetAccessToken ()
 		{
 			if (current_login != null) {
 				return current_login.access_token;
@@ -165,7 +165,7 @@ namespace Matrix
 			}
 		}
 
-		public MatrixLoginResponse GetCurrentLogin ()
+		public virtual MatrixLoginResponse GetCurrentLogin ()
 		{
 			return current_login;
 		}
@@ -273,7 +273,7 @@ namespace Matrix
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-profile-userid")]
-		public MatrixProfile ClientProfile(string userid){
+		public virtual MatrixProfile ClientProfile(string userid){
 			JObject response;
 			MatrixRequestError error = mbackend.Get ("/_matrix/client/r0/profile/" + userid,true, out response);
 			if (error.IsOk) {

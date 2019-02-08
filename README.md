@@ -1,4 +1,4 @@
-# Matrix .NET SDK
+# Matrix .NET SDK [![#dotnet:half-shot.uk](https://img.shields.io/matrix/dotnet:half-shot.uk.svg?label=%23dotnet:half-shot.uk&logo=matrix)](https://matrix.to/#/#dotnet:half-shot.uk)
 
 This project provides a SDK for interfacing with the Matrix Protocol.
 

@@ -1,9 +1,10 @@
 # Matrix .NET SDK
 
-This SDK provides a wrapper around the Client>Server API for the Matrix.org Specification.
+This project provides a SDK for interfacing with the Matrix Protocol.
 
-It is not yet a *complete* implementation, but it is considered usable enough for bots and basic clients.
+It has support for a limited subset of the r0.0.1 protocol C2S and AS APIs presently.
 
+The SDK is built against `netstandard2.0`, and will work with .NET core projects.
 
 ## How to Use
 
@@ -11,7 +12,7 @@ It is not yet a *complete* implementation, but it is considered usable enough fo
 
 A nuget exists for this project at https://www.nuget.org/packages/Half-Shot.Matrix
 
-A (very barebones) examples is in the solution file, but you will almost certainly need more. 
+There is a very barebones client included with the SDK.
 
 ## Documentation
 
@@ -19,7 +20,7 @@ Documentation is covered for the Client (and *some* of the API), however no onli
 
 ## Reporting Issues
 
-Please report bugs/features/threats through the github issue tracker.
+Please report bugs/features through the github issue tracker.
 
 If you have a pressing issue, you can find me on matrix as [@Half-Shot:half-shot.uk](https://matrix.to/#/@Half-Shot:half-shot.uk)
 

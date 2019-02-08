@@ -3,7 +3,7 @@ solution: Matrix.sln
 os: linux
 dist: trusty
 mono: none
-dotnet: 2.0.0-preview1-005977
+dotnet: 2.2
 install:
   - dotnet restore
 script:

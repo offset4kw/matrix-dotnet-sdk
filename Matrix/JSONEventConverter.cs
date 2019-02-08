@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Converters;
@@ -67,16 +68,19 @@ namespace Matrix
 			if (messageContentTypes.TryGetValue (type, out otype)) {
 				return otype;
 			} else {
-				#if DEBUG
 				Console.WriteLine ("Unknown Message Type:" + type);
-				#endif
 			}
 			return typeof(MatrixMRoomMessage);
 		}
 
 		public MatrixEventContent GetContent(JToken jobj,JsonSerializer serializer,string type){
 			Type T;
-			if (contentTypes.TryGetValue (type, out T)) {
+			if (!contentTypes.TryGetValue (type, out T)) {
+				Console.WriteLine ("Unknown Event:" + type);
+				return null;
+			}
+			try
+			{
 				if (T == typeof(MatrixMRoomMessage)) {
 					MatrixMRoomMessage message = new MatrixMRoomMessage ();
 					serializer.Populate (jobj.CreateReader (), message);
@@ -89,11 +93,10 @@ namespace Matrix
 					serializer.Populate (jobj.CreateReader (), content);
 				}
 				return content;
-			} else {
-				#if DEBUG
-				Console.WriteLine ("Unknown Event:" + type);
-				#endif
-				return null;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception($"Failed to get content for {type}");
 			}
 		}
 
@@ -106,6 +109,7 @@ namespace Matrix
 			JObject jObject = JObject.Load(reader);
 			// Populate the event itself
 			MatrixEvent ev = new MatrixEvent();
+			
 			serializer.Populate (jObject.CreateReader (), ev);
 			JToken redact;
 			if (jObject ["content"].HasValues) {

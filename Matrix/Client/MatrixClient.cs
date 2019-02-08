@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Collections.Concurrent;
-using Matrix.Exceptions;
 using Matrix.Structures;
 namespace Matrix.Client
 {
@@ -24,19 +23,17 @@ namespace Matrix.Client
 
         public event MatrixInviteDelegate OnInvite;
 
-        public string UserID { get { return api.user_id; } }
+        public string UserId { get { return api.user_id; } }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Matrix.MatrixClient"/> class.
+        /// Initializes a new instance of the <see cref="Matrix.Client.MatrixClient"/> class.
         /// The client will preform a connection and try to retrieve version information.
         /// If this fails, a MatrixUnsuccessfulConnection Exception will be thrown.
         /// </summary>
         /// <param name="URL">URL before /_matrix/</param>
-        /// <param name="syncToken"> If you stored the sync token before, you can set it for the API here</param>
-        public MatrixClient (string URL, string syncToken = "")
+        public MatrixClient (string URL)
         {
             api = new MatrixAPI (URL);
-            api.SetSyncToken(syncToken);
             try{
                 string[] versions = api.ClientVersions ();
                 if(!MatrixAPI.IsVersionSupported(versions)){
@@ -61,7 +58,7 @@ namespace Matrix.Client
         /// <param name="URL">URL before /_matrix/</param>
         /// <param name="application_token">Application token for the AS.</param>
         /// <param name="userid">Userid as the user you intend to go as.</param>
-        public MatrixClient (string URL, string application_token,string userid)
+        public MatrixClient (string URL, string application_token, string userid)
         {
             api = new MatrixAPI (URL,application_token, userid);
             try{
@@ -130,13 +127,20 @@ namespace Matrix.Client
 
         /// <summary>
         /// Login with a given username and password.
-        /// This method will also start a sync with the server
         /// Currently, this is the only login method the SDK supports.
         /// </summary>
         /// <param name="username">Username</param>
         /// <param name="password">Password</param>
-        public void LoginWithPassword(string username,string password){
-            api.ClientLogin (new MatrixLoginPassword (username, password));
+        public MatrixLoginResponse LoginWithPassword(string username,string password){
+            var result = api.ClientLogin (new MatrixLoginPassword (username, password));
+            api.SetLogin(result);
+            return result;
+        }
+
+        /// <param name="syncToken"> If you stored the sync token before, you can set it for the API here</param>
+        public void StartSync(string syncToken = "")
+        {
+            api.SetSyncToken(syncToken);
             api.ClientSync ();
             api.StartSyncThreads ();
         }
@@ -168,9 +172,7 @@ namespace Matrix.Client
                 access_token = access_token,
                 refresh_token = refresh_token,
                 home_server = api.BaseURL
-                });
-            api.ClientSync();
-            api.StartSyncThreads();
+            });
         }
 
 

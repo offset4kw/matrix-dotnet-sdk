@@ -9,7 +9,6 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-using Matrix.Exceptions;
 using Matrix.Structures;
 using Matrix.Backends;
 namespace Matrix
@@ -118,7 +117,7 @@ namespace Matrix
 							continue; //Give up trying to send
 						}
 
-						Console.WriteLine(string.Format("Waiting {0} seconds before resending",evt.backoff));
+						Console.WriteLine($"Waiting {evt.backoff} seconds before resending");
 
 						Thread.Sleep(evt.backoff*1000);
 						pendingMessages.Enqueue (evt);
@@ -194,9 +193,8 @@ namespace Matrix
 			} else {
 				if (poll_thread.IsAlive) {
 					throw new Exception ("Can't start thread, already running");
-				} else {
-					poll_thread.Start ();
 				}
+				poll_thread.Start ();
 			}
 
 		}
@@ -230,18 +228,16 @@ namespace Matrix
 			return current_login != null;
 		}
 
-		private void processSync(MatrixSync syncData){
+		private void ProcessSync(MatrixSync syncData){
 			syncToken = syncData.next_batch;
 			//Grab data from rooms the user has joined.
-			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join) {
-				if (SyncJoinEvent != null) {
-					SyncJoinEvent.Invoke (room.Key, room.Value);
-				}
+			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join)
+			{
+				SyncJoinEvent?.Invoke (room.Key, room.Value);
 			}
-            foreach (KeyValuePair<string,MatrixEventRoomInvited> room in syncData.rooms.invite) {
-                if (SyncInviteEvent != null) {
-                    SyncInviteEvent.Invoke (room.Key, room.Value);
-                }
+            foreach (KeyValuePair<string,MatrixEventRoomInvited> room in syncData.rooms.invite)
+            {
+	            SyncInviteEvent?.Invoke (room.Key, room.Value);
             }
 
 		}
@@ -261,15 +257,13 @@ namespace Matrix
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-login")]
-		public void ClientLogin(MatrixLogin login){
+		public MatrixLoginResponse ClientLogin(MatrixLogin login) {
 			JObject result;
 			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
 			if (error.IsOk) {
-				current_login = result.ToObject<MatrixLoginResponse> ();
-				SetLogin(current_login);
-			} else {
-				throw new MatrixException (error.ToString());//TODO: Need a better exception
+				return result.ToObject<MatrixLoginResponse> ();
 			}
+			throw new MatrixException (error.ToString());//TODO: Need a better exception
 		}
 
 		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-profile-userid")]
@@ -316,7 +310,7 @@ namespace Matrix
 			if (error.IsOk) {
 				try {
 					MatrixSync sync = JsonConvert.DeserializeObject<MatrixSync> (response.ToString (), event_converter);
-					processSync (sync);
+					ProcessSync (sync);
 					IsConnected = true;
 				} catch (Exception e) {
 					Console.WriteLine(e.InnerException);

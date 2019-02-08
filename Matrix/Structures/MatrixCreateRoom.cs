@@ -1,5 +1,5 @@
 ﻿using System;
-using Matrix.Exceptions;
+using Matrix;
 namespace Matrix.Structures
 {
 	public class MatrixCreateRoom

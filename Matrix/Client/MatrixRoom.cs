@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Matrix.Structures;
-using Matrix.Exceptions;
 namespace Matrix.Client
 {
 
@@ -98,6 +97,10 @@ namespace Matrix.Client
         /// <param name="evt">New event</param>
         public void FeedEvent (MatrixEvent evt)
         {
+            if (evt.content == null)
+            {
+                return; // We can't operate on this
+            }
             Type t = evt.content.GetType ();
             if (t == typeof(MatrixMRoomCreate))
             {
@@ -257,7 +260,7 @@ namespace Matrix.Client
         /// <summary>
         /// Leave the room on the server.
         /// </summary>
-        public void LeaveRoom(){
+        public void LeaveRoom() {
             api.FlushMessageQueue();
             api.RoomLeave (ID);
         }

@@ -8,7 +8,6 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using Matrix.Exceptions;
 namespace Matrix.Backends
 {
 	public class HttpBackend : IMatrixAPIBackend

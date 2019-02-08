@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Matrix.Structures
 {
 	public class MatrixEvent
@@ -44,9 +47,9 @@ namespace Matrix.Structures
 	}
 
 	/// <summary>
-	/// Do not use this class directly.
+	/// Base content class.
 	/// </summary>
-	public abstract class MatrixEventContent{
+	public class MatrixEventContent {
 
 	}
 

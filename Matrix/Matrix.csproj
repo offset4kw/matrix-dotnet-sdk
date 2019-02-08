@@ -1,4 +1,4 @@
-  <Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <PackageId>Half-Shot.Matrix</PackageId>
@@ -15,13 +15,14 @@
     <Copyright>Copyright 2017</Copyright>
     <PackageTags>Matrix SDK</PackageTags>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3"/>
-    <PackageReference Include="YamlDotNet" Version="4.2.0"/>
-    <PackageReference Include="NLog" Version="5.0.0-beta09"/>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="YamlDotNet" Version="4.2.0" />
+    <PackageReference Include="NLog" Version="5.0.0-beta09" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="bin\**;obj\**;Tests\**\*"/>
+    <Compile Include="**\*.cs" Exclude="bin\**;obj\**;Tests\**\*" />
   </ItemGroup>
 </Project>

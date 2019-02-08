@@ -1,6 +1,6 @@
 ﻿using System;
 using Matrix.Backends;
-namespace Matrix.Exceptions
+namespace Matrix
 {
 	public class MatrixException : Exception {
 		public MatrixException(string message) : base(message){

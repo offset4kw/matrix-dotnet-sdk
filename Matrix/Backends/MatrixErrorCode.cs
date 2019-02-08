@@ -1,7 +1,6 @@
-﻿using System;
-
-namespace Matrix.Backends
+﻿namespace Matrix.Backends
 {
+	// Taken from https://matrix.org/docs/spec/client_server/unstable.html#api-standards
 	public enum MatrixErrorCode{
 		M_FORBIDDEN,
 		M_UNKNOWN_TOKEN,

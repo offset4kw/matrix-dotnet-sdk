@@ -1,10 +1,10 @@
 using System;
 using NUnit.Framework;
-using Matrix.Exceptions;
+using Matrix;
 using Matrix.Client;
 using Matrix.Structures;
 using Moq;
-namespace Matrix.Tests
+namespace Matrix.Tests.Client
 {
     [TestFixture]
     public class MatrixClientTests
@@ -12,20 +12,20 @@ namespace Matrix.Tests
         [Test]
         public void CreateMatrixClientTest()
         {
-            var mock = Utils.MockAPI();
+            var mock = Utils.MockApi();
             MatrixClient client = new MatrixClient((MatrixAPI)mock.Object);
         }
 
         [Test]
         public void GetSyncTokenTest() {
-            var mock = Utils.MockAPI();
+            var mock = Utils.MockApi();
             MatrixClient client = new MatrixClient((MatrixAPI)mock.Object);
             Assert.That(client.GetSyncToken(), Is.EqualTo("AGoodSyncToken"));
         }
 
         [Test]
         public void GetAccessTokenTest() {
-            var mock = Utils.MockAPI();
+            var mock = Utils.MockApi();
 
             MatrixClient client = new MatrixClient((MatrixAPI)mock.Object);
             Assert.That(client.GetAccessToken(), Is.EqualTo("AGoodAccessToken"));
@@ -33,14 +33,14 @@ namespace Matrix.Tests
 
         [Test]
         public void GetCurrentLoginTest() {
-            var mock = Utils.MockAPI();
+            var mock = Utils.MockApi();
             MatrixClient client = new MatrixClient((MatrixAPI)mock.Object);
             Assert.That(client.GetCurrentLogin(), Is.Not.Null);
         }
 
         [Test]
         public void GetUserTest() {
-            var mock = Utils.MockAPI();
+            var mock = Utils.MockApi();
             // Without userid parameter
             mock.Setup(f => f.ClientProfile(It.IsAny<String>()));
             MatrixClient client = new MatrixClient((MatrixAPI)mock.Object);

@@ -8,19 +8,19 @@ namespace Matrix.Tests
     {
         public static MatrixEvent MockEvent(
             MatrixEventContent content,
-            string state_key = null,
+            string stateKey = null,
             int age = 0)
         {
             MatrixEvent ev = new MatrixEvent();
             ev.content = content;
-            if(state_key != null) {
-                ev.state_key = state_key;
+            if(stateKey != null) {
+                ev.state_key = stateKey;
             }
             ev.age = age;
             return ev;
         }
 
-        public static Mock<MatrixAPI> MockAPI() {
+        public static Mock<MatrixAPI> MockApi() {
             var mock = new Mock<MatrixAPI>("https://localhost");
             mock.Setup(f => f.user_id).Returns("@foobar:localhost");
             mock.Setup(f => f.BaseURL).Returns("https://localhost");

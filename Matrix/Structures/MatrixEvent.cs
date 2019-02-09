@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -40,7 +41,7 @@ namespace Matrix.Structures
 
 	}
 
-	public class MatrixEventUnsigned{
+	public class MatrixEventUnsigned {
 		public MatrixEventUnsigned prev_content;
 		public Int64 age;
 		public string transaction_id;
@@ -49,8 +50,9 @@ namespace Matrix.Structures
 	/// <summary>
 	/// Base content class.
 	/// </summary>
-	public class MatrixEventContent {
-
+	public class MatrixEventContent
+	{
+		public JObject mxContent = null;
 	}
 
 	public class MatrixTimeline{

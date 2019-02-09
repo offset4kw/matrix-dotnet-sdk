@@ -47,11 +47,9 @@ namespace Matrix
 			}
 		}
 
-
 		public void AddMessageType(string name, Type type){
 			messageContentTypes.Add(name,type);
 		}
-
 
 		public void AddEventType (string msgtype, Type type)
 		{
@@ -60,23 +58,22 @@ namespace Matrix
 
 		public override bool CanConvert(Type objectType)
 		{
-			return objectType == typeof(MatrixEvent);
+			return objectType == typeof(MatrixEvent) || objectType == typeof(MatrixEventContent);
 		}
 
 		public Type MessageContentType(string type){
 			Type otype;
 			if (messageContentTypes.TryGetValue (type, out otype)) {
 				return otype;
-			} else {
-				Console.WriteLine ("Unknown Message Type:" + type);
 			}
+
 			return typeof(MatrixMRoomMessage);
 		}
 
-		public MatrixEventContent GetContent(JToken jobj,JsonSerializer serializer,string type){
+		public MatrixEventContent GetContent(JObject jobj,JsonSerializer serializer,string type){
 			Type T;
 			if (!contentTypes.TryGetValue (type, out T)) {
-				Console.WriteLine ("Unknown Event:" + type);
+				//Console.WriteLine ("Unknown Event:" + type);
 				return null;
 			}
 			try
@@ -87,8 +84,9 @@ namespace Matrix
 					T = MessageContentType (message.msgtype);
 				}
 				MatrixEventContent content = (MatrixEventContent)Activator.CreateInstance(T);
+				content.mxContent = jobj;
 				if (type == "m.receipt") {
-					((MatrixMReceipt)content).ParseJObject((JObject)jobj);
+					((MatrixMReceipt)content).ParseJObject(jobj);
 				} else {
 					serializer.Populate (jobj.CreateReader (), content);
 				}
@@ -107,25 +105,31 @@ namespace Matrix
 		{
 			// Load JObject from stream
 			JObject jObject = JObject.Load(reader);
-			// Populate the event itself
-			MatrixEvent ev = new MatrixEvent();
+			if (objectType == typeof(MatrixEvent))
+			{
+				// Populate the event itself
+				MatrixEvent ev = new MatrixEvent();
 			
-			serializer.Populate (jObject.CreateReader (), ev);
-			JToken redact;
-			if (jObject ["content"].HasValues) {
-				ev.content = GetContent (jObject ["content"], serializer, ev.type);
-			} else if(((JObject)jObject["unsigned"]).TryGetValue("redacted_because",out redact)){
-				//TODO: Parse Redacted
+				serializer.Populate (jObject.CreateReader (), ev);
+				JToken redact;
+				if (jObject ["content"].HasValues) {
+					ev.content = GetContent (jObject ["content"] as JObject, serializer, ev.type);
+				} else if(((JObject)jObject["unsigned"]).TryGetValue("redacted_because",out redact)){
+					//TODO: Parse Redacted
+				}
+				return ev;
 			}
-			return ev;
+			if (objectType == typeof(MatrixEventContent))
+			{
+				// Populate 
+				var ev = new MatrixEventContent();
+				ev.mxContent = jObject;
+				return ev;
+			}
+			return null;
 		}
 
-		public override bool CanWrite {
-			get {
-				return false;
-			}
-
-		}
+		public override bool CanWrite => false;
 
 		public override void WriteJson(JsonWriter writer,
 			object value,

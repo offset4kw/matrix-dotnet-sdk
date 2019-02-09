@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Collections.Concurrent;
 using Matrix.Structures;
+using YamlDotNet.Serialization;
+
 namespace Matrix.Client
 {
     /// <summary>
@@ -25,6 +27,14 @@ namespace Matrix.Client
         public event MatrixInviteDelegate OnInvite;
 
         public string UserId { get { return api.user_id; } }
+        
+        /// <summary>
+        /// Get the underlying API that MatrixClient wraps. Here be dragons 🐲.
+        /// </summary>
+        public MatrixAPI Api
+        {
+            get { return api;  }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Matrix.Client.MatrixClient"/> class.
@@ -265,9 +275,20 @@ namespace Matrix.Client
         /// </summary>
         /// <returns>The room.</returns>
         /// <param name="roomid">Roomid.</param>
-        public MatrixRoom GetRoom(string roomid){//TODO: Maybe add a try method.
+        public MatrixRoom GetRoom(string roomid) {//TODO: Maybe add a try method.
             MatrixRoom room = null;
             _rooms.TryGetValue(roomid,out room);
+            if (room == null)
+            {
+                // If we don't have the room, attempt to grab it's state.
+                var state = api.GetRoomState(roomid);
+                room = new MatrixRoom(api, roomid);
+                foreach (var matrixEvent in state)
+                {
+                    room.FeedEvent(matrixEvent);
+                }
+                _rooms.TryAdd(roomid, room);
+            }
             return room;
         }
         /// <summary>
@@ -321,7 +342,7 @@ namespace Matrix.Client
         {
             api.DeleteFromRoomDirectory(alias);
         }
-
+ 
         /// <summary>
         /// Releases all resource used by the <see cref="Matrix.Client.MatrixClient"/> object.
         /// In addition, this will stop the sync thread.

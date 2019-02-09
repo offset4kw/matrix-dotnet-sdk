@@ -5,12 +5,12 @@ namespace Matrix.Backends
 {
 	public interface IMatrixAPIBackend
 	{
-		MatrixRequestError Get  (string apiPath, bool authenticate, out JObject result);
-		MatrixRequestError Delete (string apiPath, bool authenticate, out JObject result);
-		MatrixRequestError Post (string apiPath, bool authenticate, JObject request, out JObject result);
-		MatrixRequestError Put (string apiPath, bool authenticate, JObject request, out JObject result);
-		MatrixRequestError Post (string apiPath, bool authenticate, JObject request, Dictionary<string,string> headers, out JObject result);
-		MatrixRequestError Post (string apiPath, bool authenticate, byte[] request , Dictionary<string,string> headers, out JObject result);
+		MatrixRequestError Get  (string apiPath, bool authenticate, out JToken result);
+		MatrixRequestError Delete (string apiPath, bool authenticate, out JToken result);
+		MatrixRequestError Post (string apiPath, bool authenticate, JToken request, out JToken result);
+		MatrixRequestError Put (string apiPath, bool authenticate, JToken request, out JToken result);
+		MatrixRequestError Post (string apiPath, bool authenticate, JToken request, Dictionary<string,string> headers, out JToken result);
+		MatrixRequestError Post (string apiPath, bool authenticate, byte[] request , Dictionary<string,string> headers, out JToken result);
 
 		void SetAccessToken(string access_token);
 	}

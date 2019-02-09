@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Matrix.Structures;
+using YamlDotNet.Core.Tokens;
 
 namespace Matrix.Client
 {
@@ -142,7 +143,7 @@ namespace Matrix.Client
         {
             ID = roomid;
             api = API;
-            Members = new Dictionary<string, MatrixMRoomMember>();
+            Members = new SortedDictionary<string, MatrixMRoomMember>();
         }
 
         /// <summary>
@@ -401,9 +402,20 @@ namespace Matrix.Client
             }
         }
 
+        //TODO: Give this parameters
+        public ChunkedMessages FetchMessages()
+        {
+            return api.GetRoomMessages(ID);
+        }
+
         public RoomTags GetTags()
         {
             return api.RoomGetTags(ID);
+        }
+
+        public void SetTag(string tagName, double order = 0)
+        {
+            api.RoomPutTag(ID, tagName, order);
         }
 
     }

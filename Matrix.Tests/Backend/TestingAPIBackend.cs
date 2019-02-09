@@ -29,6 +29,11 @@ namespace Matrix.Backends
             result = null;
             return null;
         }
+		
+		public MatrixRequestError Delete  (string apiPath, bool authenticate, out JObject result) {
+			result = null;
+			return null;
+		}
 
 		public void SetAccessToken(string access_token) {
 

@@ -47,18 +47,18 @@ namespace Matrix.Backends
 			return apiPath;
 		}
 
-		private async Task <Tuple<JObject, MatrixRequestError>> RequestWrap (Task<HttpResponseMessage> task){
+		private async Task <Tuple<JToken, MatrixRequestError>> RequestWrap (Task<HttpResponseMessage> task){
 			try
 			{
-				Tuple<JObject, HttpStatusCode> res = await GenericRequest (task);
-				return new Tuple<JObject, MatrixRequestError>(res.Item1, new MatrixRequestError ("", MatrixErrorCode.CL_NONE, res.Item2));
+				Tuple<JToken, HttpStatusCode> res = await GenericRequest (task);
+				return new Tuple<JToken, MatrixRequestError>(res.Item1, new MatrixRequestError ("", MatrixErrorCode.CL_NONE, res.Item2));
 			}
 			catch(MatrixServerError e){
-				return new Tuple<JObject, MatrixRequestError>(null, new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK));
+				return new Tuple<JToken, MatrixRequestError>(null, new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK));
 			}
 		}
 
-		public MatrixRequestError Get (string apiPath, bool authenticate, out JObject result){
+		public MatrixRequestError Get (string apiPath, bool authenticate, out JToken result){
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
 			var res = RequestWrap(task);
@@ -67,7 +67,7 @@ namespace Matrix.Backends
 			return res.Result.Item2;
 		}
 		
-		public MatrixRequestError Delete (string apiPath, bool authenticate, out JObject result){
+		public MatrixRequestError Delete (string apiPath, bool authenticate, out JToken result){
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.DeleteAsync(apiPath);
 			var res = RequestWrap(task);
@@ -76,7 +76,7 @@ namespace Matrix.Backends
 			return res.Result.Item2;
 		}
 
-		public MatrixRequestError Put(string apiPath, bool authenticate, JObject data, out JObject result){
+		public MatrixRequestError Put(string apiPath, bool authenticate, JToken data, out JToken result){
 			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
@@ -87,7 +87,7 @@ namespace Matrix.Backends
 		}
 
 
-		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, Dictionary<string,string> headers , out JObject result){
+		public MatrixRequestError Post(string apiPath, bool authenticate, JToken data, Dictionary<string,string> headers , out JToken result){
 			StringContent content;
 			if (data != null) {
 				content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
@@ -108,7 +108,7 @@ namespace Matrix.Backends
 		}
 
 		public MatrixRequestError Post(string apiPath, bool authenticate, byte[] data, Dictionary<string, string> headers,
-			out JObject result)
+			out JToken result)
 		{
 			ByteArrayContent content;
 			if (data != null)
@@ -133,13 +133,13 @@ namespace Matrix.Backends
 			return res.Result.Item2;
 		}
 
-		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, out JObject result){
+		public MatrixRequestError Post(string apiPath, bool authenticate, JToken data, out JToken result){
 			return Post(apiPath,authenticate,data, new Dictionary<string,string>(),out result);
 		}
 
-		private async Task<Tuple<JObject, HttpStatusCode>> GenericRequest(Task<HttpResponseMessage> task){
+		private async Task<Tuple<JToken, HttpStatusCode>> GenericRequest(Task<HttpResponseMessage> task){
 			Task<string> stask = null;
-			JObject result = null;
+			JToken result = null;
 			HttpResponseMessage httpResult;
 			try
 			{
@@ -149,7 +149,7 @@ namespace Matrix.Backends
 				}
 				else
 				{
-					return new Tuple<JObject, HttpStatusCode>(null, httpResult.StatusCode);
+					return new Tuple<JToken, HttpStatusCode>(null, httpResult.StatusCode);
 				}
 			}
 			catch(WebException e){
@@ -160,11 +160,11 @@ namespace Matrix.Backends
 			}
 
 			string json = await stask;
-			result = JObject.Parse (json);
-			if (result ["errcode"] != null) {
+			result = JToken.Parse(json);
+			if (result.Type == JTokenType.Object && result ["errcode"] != null) {
 				throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
 			}
-			return new Tuple<JObject, HttpStatusCode>(result, httpResult.StatusCode);
+			return new Tuple<JToken, HttpStatusCode>(result, httpResult.StatusCode);
 		}
 	}
 }

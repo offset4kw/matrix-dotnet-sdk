@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Matrix.Structures;
 
 namespace Matrix.Client
@@ -31,7 +32,7 @@ namespace Matrix.Client
         public string Topic { get; private set; }
         public string Creator { get; private set; }
 
-        public Dictionary<string, MatrixMRoomMember> Members { get; private set; }
+        public SortedDictionary<string, MatrixMRoomMember> Members { get; private set; }
 
         /// <summary>
         /// Should this Matrix Room federate with other home servers?
@@ -83,6 +84,50 @@ namespace Matrix.Client
         public MatrixMRoomMessage[] Messages
         {
             get { return messages.ToArray(); }
+        }
+
+        public string HumanReadableName
+        {
+            get
+            {
+                if (!String.IsNullOrEmpty(Name))
+                {
+                    return Name;
+                }
+                if (!String.IsNullOrEmpty(CanonicalAlias))
+                {
+                    return CanonicalAlias;
+                }
+
+                bool skippingLeave = true;
+                while (true)
+                {
+                    foreach (var member in Members)
+                    {
+                        if (member.Key == api.user_id || member.Value.membership == EMatrixRoomMembership.Leave && skippingLeave)
+                        {
+                            continue;
+                        }
+
+                        if (Members.Count == 2)
+                        {
+                            //TODO: This should be disambiguated
+                            return member.Value.displayname;
+                        }
+                        if (Members.Count > 2)
+                        {
+                            //TODO: This should be disambiguated
+                            var res = $"{member.Value.displayname} and {Members.Count} others";
+                            return skippingLeave ? res : $"Empty room (was {res})";
+                        }
+                    }
+                    if (!skippingLeave)
+                    {
+                        return "Empty Room";
+                    }
+                    skippingLeave = false;
+                }
+            }
         }
 
         private MatrixAPI api;

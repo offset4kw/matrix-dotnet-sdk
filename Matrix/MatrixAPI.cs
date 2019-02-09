@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Linq;
 using System.IO;
+using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -256,7 +257,7 @@ namespace Matrix
 			return error;
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-login")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-login")]
 		public MatrixLoginResponse ClientLogin(MatrixLogin login) {
 			JObject result;
 			MatrixRequestError error = mbackend.Post ("/_matrix/client/r0/login",false,JObject.FromObject(login),out result);
@@ -266,7 +267,7 @@ namespace Matrix
 			throw new MatrixException (error.ToString());//TODO: Need a better exception
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-profile-userid")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-profile-userid")]
 		public virtual MatrixProfile ClientProfile(string userid){
 			JObject response;
 			MatrixRequestError error = mbackend.Get ("/_matrix/client/r0/profile/" + userid,true, out response);
@@ -277,7 +278,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1#put-matrix-client-r0-profile-userid-displayname")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-profile-displayname")]
 		public void ClientSetDisplayName(string userid,string displayname){
 			JObject response;
 			JObject request = new JObject();
@@ -288,7 +289,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1#put-matrix-client-r0-profile-userid-displayname")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-profile-userid-displayname")]
 		public void ClientSetAvatar(string userid,string avatar_url){
 			JObject response;
 			JObject request = new JObject();
@@ -299,7 +300,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-r0-sync")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-sync")]
 		public void ClientSync(bool ConnectionFailureTimeout = false){
 			JObject response;
 			string url = "/_matrix/client/r0/sync?timeout="+SyncTimeout;
@@ -326,7 +327,7 @@ namespace Matrix
 				RunningInitialSync = false;
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#get-matrix-client-versions")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-versions")]
 		public string[] ClientVersions(){
 			JObject result;
 			MatrixRequestError error = mbackend.Get ("/_matrix/client/versions",false, out result);
@@ -337,7 +338,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-join")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-rooms-roomid-join")]
 		public string ClientJoin(string roomid){
 			JObject result;
 			MatrixRequestError error = mbackend.Post(String.Format("/_matrix/client/r0/join/{0}",System.Uri.EscapeDataString(roomid)),true,null,out result);
@@ -350,7 +351,7 @@ namespace Matrix
 
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-leave")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-rooms-roomid-leave")]
 		public void RoomLeave(string roomid){
 			JObject result;
 			MatrixRequestError error = mbackend.Post(String.Format("/_matrix/client/r0/rooms/{0}/leave",System.Uri.EscapeDataString(roomid)),true,null,out result);
@@ -359,7 +360,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-createroom")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-createroom")]
 		public string ClientCreateRoom(MatrixCreateRoom roomrequest = null){
 			JObject result;
 			JObject req = null;
@@ -375,7 +376,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-state-eventtype")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "put-matrix-client-r0-rooms-roomid-state-eventtype")]
 		public virtual void RoomStateSend(string roomid,string type,MatrixRoomStateEvent message,string key = ""){
 			JObject msgData = ObjectToJson (message);
 			JObject result;
@@ -385,7 +386,7 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-invite")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-rooms-roomid-invite")]
 		public void InviteToRoom(string roomid, string userid){
 			JObject result;
 			JObject msgData = JObject.FromObject(new {user_id=userid});
@@ -395,8 +396,7 @@ namespace Matrix
 			}
 		}
 
-
-		[MatrixSpec("r0.0.1/client_server.html#put-matrix-client-r0-rooms-roomid-send-eventtype-txnid")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "put-matrix-client-r0-rooms-roomid-send-eventtype-txnid")]
 		public void RoomMessageSend (string roomid, string type, MatrixMRoomMessage message)
 		{
 			bool collision = true;
@@ -417,25 +417,60 @@ namespace Matrix
 			}
 		}
 
-		[MatrixSpec("r0.0.1/client_server.html#post-matrix-client-r0-rooms-roomid-receipt-receipttype-eventid")]
+		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "post-matrix-client-r0-rooms-roomid-receipt-receipttype-eventid")]
 		public void RoomTypingSend (string roomid, bool typing, int timeout = 0)
 		{
 			JObject msgData;
-			JObject result;
 			if (timeout == 0) {
 				msgData = JObject.FromObject (new {typing = typing});
 			} else {
 				msgData = JObject.FromObject(new {typing=typing,timeout=timeout});
 			}
-			MatrixRequestError error = mbackend.Put (String.Format ("/_matrix/client/r0/rooms/{0}/typing/{1}", System.Uri.EscapeDataString(roomid), System.Uri.EscapeDataString(user_id)), true, msgData,out result);
+			MatrixRequestError error = mbackend.Put (
+				$"/_matrix/client/r0/rooms/{System.Uri.EscapeDataString(roomid)}/typing/{System.Uri.EscapeDataString(user_id)}", true, msgData,out _);
 			if (!error.IsOk) {
-				throw new MatrixException (error.ToString());//TODO: Need a better exception
+				throw new MatrixException (error.ToString());
 			}
 		}
 
-		public string MediaUpload(string contentType,byte[] data){
-			JObject result = new JObject();
-			MatrixRequestError error = mbackend.Post("/_matrix/media/r0/upload",true,data,new Dictionary<string,string>(){{"Content-Type",contentType}},out result);
+		[MatrixSpec(EMatrixSpecApiVersion.R040, EMatrixSpecApi.ClientServer,
+			"get-matrix-client-r0-user-userid-rooms-roomid-tags")]
+		public RoomTags RoomGetTags(string roomid)
+		{
+			MatrixRequestError error = mbackend.Get($"/_matrix/client/r0/user/{user_id}/rooms/{roomid}/tags", true, out var result);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());
+			}
+			return result.ToObject<RoomTags>();
+		}
+
+		public PublicRooms PublicRooms(int limit, string since, string server)
+		{
+			var qs = HttpUtility.ParseQueryString(string.Empty);
+			if (limit != 0)
+				qs.Set("limit", limit.ToString());
+			if (since != "")
+				qs.Set("since", since);
+			if (server != "")
+				qs.Set("server", server);
+			MatrixRequestError error = mbackend.Get($"/_matrix/client/r0/publicRooms?{qs}", true, out var result);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());
+			}
+			return result.ToObject<PublicRooms>();
+		}
+		
+		public void DeleteFromRoomDirectory(string alias)
+		{
+			MatrixRequestError error = mbackend.Delete($"/_matrix/client/r0/directory/room/{alias}", true, out var _);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());
+			}
+		}
+
+		public string MediaUpload(string contentType,byte[] data)
+		{
+			MatrixRequestError error = mbackend.Post("/_matrix/media/r0/upload",true,data,new Dictionary<string,string>(){{"Content-Type",contentType}},out var result);
 			if (!error.IsOk) {
 				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}

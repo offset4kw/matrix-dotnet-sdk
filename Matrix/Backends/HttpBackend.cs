@@ -23,7 +23,7 @@ namespace Matrix.Backends
 				baseurl = baseurl.Substring (0, baseurl.Length - 1);
 			}
 			ServicePointManager.ServerCertificateValidationCallback += acceptCertificate;
-			this.client = client == null ? new HttpClient() : client;
+			this.client = client ?? new HttpClient();
 			this.user_id = user_id;
 		}
 
@@ -47,29 +47,43 @@ namespace Matrix.Backends
 			return apiPath;
 		}
 
-		private MatrixRequestError requestWrap (Task<HttpResponseMessage> task, out JObject result){
+		private async Task <Tuple<JObject, MatrixRequestError>> RequestWrap (Task<HttpResponseMessage> task){
 			try
 			{
-				HttpStatusCode code = GenericRequest (task, out result);
-				return new MatrixRequestError ("", MatrixErrorCode.CL_NONE, code);
+				Tuple<JObject, HttpStatusCode> res = await GenericRequest (task);
+				return new Tuple<JObject, MatrixRequestError>(res.Item1, new MatrixRequestError ("", MatrixErrorCode.CL_NONE, res.Item2));
 			}
 			catch(MatrixServerError e){
-				result = null;
-				return new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK);
+				return new Tuple<JObject, MatrixRequestError>(null, new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK));
 			}
 		}
 
-		public MatrixRequestError Get  (string apiPath, bool authenticate, out JObject result){
+		public MatrixRequestError Get (string apiPath, bool authenticate, out JObject result){
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
-			return requestWrap (task, out result);
+			var res = RequestWrap(task);
+			res.Wait();
+			result = res.Result.Item1;
+			return res.Result.Item2;
+		}
+		
+		public MatrixRequestError Delete (string apiPath, bool authenticate, out JObject result){
+			apiPath = getPath (apiPath,authenticate);
+			Task<HttpResponseMessage> task = client.DeleteAsync(apiPath);
+			var res = RequestWrap(task);
+			res.Wait();
+			result = res.Result.Item1;
+			return res.Result.Item2;
 		}
 
 		public MatrixRequestError Put(string apiPath, bool authenticate, JObject data, out JObject result){
 			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
-			return requestWrap (task, out result);
+			var res = RequestWrap(task);
+			res.Wait();
+			result = res.Result.Item1;
+			return res.Result.Item2;
 		}
 
 
@@ -87,43 +101,55 @@ namespace Matrix.Backends
 
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
-			return requestWrap (task, out result);
+			var res = RequestWrap(task);
+			res.Wait();
+			result = res.Result.Item1;
+			return res.Result.Item2;
 		}
 
-		public MatrixRequestError Post(string apiPath, bool authenticate, byte[] data, Dictionary<string,string> headers , out JObject result){
+		public MatrixRequestError Post(string apiPath, bool authenticate, byte[] data, Dictionary<string, string> headers,
+			out JObject result)
+		{
 			ByteArrayContent content;
-			if (data != null) {
-				content = new ByteArrayContent (data);
-			} else {
-				content = new ByteArrayContent (new byte[0]);
+			if (data != null)
+			{
+				content = new ByteArrayContent(data);
+			}
+			else
+			{
+				content = new ByteArrayContent(new byte[0]);
 			}
 
-			foreach(KeyValuePair<string,string> header in headers){
-				content.Headers.Add(header.Key,header.Value);
+			foreach (KeyValuePair<string, string> header in headers)
+			{
+				content.Headers.Add(header.Key, header.Value);
 			}
 
-			apiPath = getPath (apiPath,authenticate);
-			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
-			return requestWrap (task, out result);
+			apiPath = getPath(apiPath, authenticate);
+			Task<HttpResponseMessage> task = client.PostAsync(apiPath, content);
+			var res = RequestWrap(task);
+			res.Wait();
+			result = res.Result.Item1;
+			return res.Result.Item2;
 		}
 
 		public MatrixRequestError Post(string apiPath, bool authenticate, JObject data, out JObject result){
 			return Post(apiPath,authenticate,data, new Dictionary<string,string>(),out result);
 		}
 
-		private HttpStatusCode GenericRequest(Task<HttpResponseMessage> task, out JObject result){
+		private async Task<Tuple<JObject, HttpStatusCode>> GenericRequest(Task<HttpResponseMessage> task){
 			Task<string> stask = null;
-			result = null;
+			JObject result = null;
+			HttpResponseMessage httpResult;
 			try
 			{
-				task.Wait();
-				if (task.Status == TaskStatus.RanToCompletion ) {
-					stask = task.Result.Content.ReadAsStringAsync();
-					stask.Wait();
+				httpResult = await task;
+				if (httpResult.StatusCode.HasFlag(HttpStatusCode.OK) ){
+					stask = httpResult.Content.ReadAsStringAsync();
 				}
 				else
 				{
-					return task.Result.StatusCode;
+					return new Tuple<JObject, HttpStatusCode>(null, httpResult.StatusCode);
 				}
 			}
 			catch(WebException e){
@@ -132,20 +158,13 @@ namespace Matrix.Backends
 			catch(AggregateException e){
 				throw new MatrixException (e.InnerException.Message,e.InnerException);
 			}
-			if (stask.Status == TaskStatus.RanToCompletion) {
-				try
-				{
-					result = JObject.Parse (stask.Result);
-					if (result ["errcode"] != null) {
-						throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
-					}
-				}
-				catch(JsonException e){
-					//Regular web failure then
-				}
-			}
-			return task.Result.StatusCode;
 
+			string json = await stask;
+			result = JObject.Parse (json);
+			if (result ["errcode"] != null) {
+				throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
+			}
+			return new Tuple<JObject, HttpStatusCode>(result, httpResult.StatusCode);
 		}
 	}
 }

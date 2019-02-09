@@ -19,7 +19,8 @@ namespace Matrix.Client
         /// </summary>
         /// <value>The sync timeout in milliseconds.</value>
         public int SyncTimeout { get {return api.SyncTimeout;} set{ api.SyncTimeout = value; } }
-        ConcurrentDictionary<string,MatrixRoom> rooms	= new ConcurrentDictionary<string,MatrixRoom>();
+
+        readonly ConcurrentDictionary<string,MatrixRoom> _rooms	= new ConcurrentDictionary<string,MatrixRoom>();
 
         public event MatrixInviteDelegate OnInvite;
 
@@ -113,12 +114,12 @@ namespace Matrix.Client
         private void MatrixClient_OnEvent (string roomid, MatrixEventRoomJoined joined)
         {
             MatrixRoom mroom;
-            if (!rooms.ContainsKey (roomid)) {
+            if (!_rooms.ContainsKey (roomid)) {
                 mroom = new MatrixRoom (api, roomid);
-                rooms.TryAdd (roomid, mroom);
+                _rooms.TryAdd (roomid, mroom);
                 //Update existing room
             } else {
-                mroom = rooms [roomid];
+                mroom = _rooms [roomid];
             }
             joined.state.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
             joined.timeline.events.ToList ().ForEach (x => {mroom.FeedEvent (x);});
@@ -205,7 +206,7 @@ namespace Matrix.Client
         /// </summary>
         /// <returns>Array of MatrixRooms</returns>
         public MatrixRoom[] GetAllRooms(){
-            return rooms.Values.ToArray ();
+            return _rooms.Values.ToArray ();
         }
 
         /// <summary>
@@ -243,15 +244,15 @@ namespace Matrix.Client
         /// <returns>The room.</returns>
         /// <param name="roomid">roomid or alias</param>
         public MatrixRoom JoinRoom(string roomid){//TODO: Maybe add a try method.
-            if (!rooms.ContainsKey (roomid)) {//TODO: Check the status of the room too.
+            if (!_rooms.ContainsKey (roomid)) {//TODO: Check the status of the room too.
                 roomid = api.ClientJoin (roomid);
                 if(roomid == null){
                     return null;
                 }
                 MatrixRoom room = new MatrixRoom (api, roomid);
-                rooms.TryAdd (room.ID, room);
+                _rooms.TryAdd (room.ID, room);
             }
-            return rooms [roomid];
+            return _rooms [roomid];
         }
 
         public MatrixMediaFile UploadFile(string contentType,byte[] data){
@@ -266,7 +267,7 @@ namespace Matrix.Client
         /// <param name="roomid">Roomid.</param>
         public MatrixRoom GetRoom(string roomid){//TODO: Maybe add a try method.
             MatrixRoom room = null;
-            rooms.TryGetValue(roomid,out room);
+            _rooms.TryGetValue(roomid,out room);
             return room;
         }
         /// <summary>
@@ -275,7 +276,7 @@ namespace Matrix.Client
         /// <returns>The room by alias.</returns>
         /// <param name="alias">CanonicalAlias or any Alias</param>
         public MatrixRoom GetRoomByAlias(string alias){
-            MatrixRoom room = rooms.Values.FirstOrDefault( x => {
+            MatrixRoom room = _rooms.Values.FirstOrDefault( x => {
                 if(x.CanonicalAlias == alias){
                     return true;
                 }
@@ -309,6 +310,16 @@ namespace Matrix.Client
         public void AddStateEventType (string msgtype, Type type)
         {
             api.AddEventType(msgtype, type);
+        }
+
+        public PublicRooms GetPublicRooms(int limit = 0, string since = "", string server = "")
+        {
+            return api.PublicRooms(limit, since, server);
+        }
+
+        public void DeleteFromRoomDirectory(string alias)
+        {
+            api.DeleteFromRoomDirectory(alias);
         }
 
         /// <summary>

@@ -5,16 +5,73 @@ namespace Matrix
     [AttributeUsage(AttributeTargets.Method)]
     public class MatrixSpec : Attribute
     {
-        const string MATRIX_SPEC_URL = "http://matrix.org/docs/spec/";
-        public readonly string URL;
-        public MatrixSpec(string url){
-            URL = MATRIX_SPEC_URL + url;
+        public EMatrixSpecApiVersion Version { get; }
+        public EMatrixSpecApi Api { get; }
+        public string Path { get; }
+        private const string MATRIX_SPEC_URL = "http://matrix.org/docs/spec/";
+        public MatrixSpec(EMatrixSpecApiVersion supportedVer, EMatrixSpecApi api, string path)
+        {
+            Api = api;
+            Path = path;
+            Version = supportedVer;
         }
 
         public override string ToString ()
         {
-            return string.Format (URL);
+            var verStr = "";
+            var apiStr = "";
+            switch (Api)
+            {
+                case EMatrixSpecApi.ClientServer:
+                    apiStr = "client_server";
+                    break;
+                case EMatrixSpecApi.ApplicationService:
+                    apiStr = "application_service";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(Api), Api, null);
+            }
+            
+            switch (Version)
+            {
+                case EMatrixSpecApiVersion.R001:
+                    verStr = "r0.0.1";
+                    break;
+                case EMatrixSpecApiVersion.R010:
+                    verStr = "r0.1.0";
+                    break;
+                case EMatrixSpecApiVersion.R020:
+                    verStr = "r0.2.0";
+                    break;
+                case EMatrixSpecApiVersion.R030:
+                    verStr = "r0.3.0";
+                    break;
+                case EMatrixSpecApiVersion.R040:
+                    verStr = "r0.4.0";
+                    break;
+                // case EMatrixSpecApiVersion.Unstable:
+                default:
+                    verStr = "unstable";
+                    break;
+            }
+            return $"{MATRIX_SPEC_URL}/{apiStr}/{verStr}.html#${Path}";
         }
+    }
+
+    public enum EMatrixSpecApi
+    {
+        ClientServer,
+        ApplicationService,
+    }
+    
+    public enum EMatrixSpecApiVersion
+    {
+        Unstable,
+        R001,
+        R010,
+        R020,
+        R030,
+        R040,
     }
 
     /// <summary>

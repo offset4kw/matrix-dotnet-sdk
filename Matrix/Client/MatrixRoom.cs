@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
 using Matrix.Structures;
+
 namespace Matrix.Client
 {
 
-    public delegate void MatrixRoomEventDelegate(MatrixRoom room,MatrixEvent evt);
+    public delegate void MatrixRoomEventDelegate(MatrixRoom room, MatrixEvent evt);
+
     public delegate void MatrixRoomChangeDelegate();
+
     public delegate void MatrixRoomRecieptDelegate(string event_id, MatrixReceipts receipts);
+
     public delegate void MatrixRoomTypingDelegate(string[] user_ids);
+
     public delegate void MatrixRoomMemberEvent(string user_id, MatrixMRoomMember member);
 
     /// <summary>
@@ -21,17 +26,19 @@ namespace Matrix.Client
         /// The server assigned ID for the room. This can never change.
         /// </summary>
         public readonly string ID;
+
         public string Name { get; private set; }
         public string Topic { get; private set; }
         public string Creator { get; private set; }
 
-        public Dictionary<string,MatrixMRoomMember> Members { get; private set; }
+        public Dictionary<string, MatrixMRoomMember> Members { get; private set; }
 
         /// <summary>
         /// Should this Matrix Room federate with other home servers?
         /// </summary>
         /// <value><c>true</c> if should federate; otherwise, <c>false</c>.</value>
         public bool ShouldFederate { get; private set; }
+
         public string CanonicalAlias { get; private set; }
         public string[] Aliases { get; private set; }
 
@@ -73,7 +80,10 @@ namespace Matrix.Client
         /// Get a list of all the messages recieved so far.
         /// <remarks>This is not a complete list for the rooms entire history</remarks>
         /// </summary>
-        public MatrixMRoomMessage[] Messages { get { return messages.ToArray (); } }
+        public MatrixMRoomMessage[] Messages
+        {
+            get { return messages.ToArray(); }
+        }
 
         private MatrixAPI api;
 
@@ -83,7 +93,7 @@ namespace Matrix.Client
         /// </summary>
         /// <param name="API">The API to send/recieve requests from</param>
         /// <param name="roomid">Roomid</param>
-        public MatrixRoom (MatrixAPI API,string roomid)
+        public MatrixRoom(MatrixAPI API, string roomid)
         {
             ID = roomid;
             api = API;
@@ -95,73 +105,95 @@ namespace Matrix.Client
         /// If a Room recieves a new event, process it in here.
         /// </summary>
         /// <param name="evt">New event</param>
-        public void FeedEvent (MatrixEvent evt)
+        public void FeedEvent(MatrixEvent evt)
         {
             if (evt.content == null)
             {
                 return; // We can't operate on this
             }
-            Type t = evt.content.GetType ();
+
+            Type t = evt.content.GetType();
             if (t == typeof(MatrixMRoomCreate))
             {
-                var create = ((MatrixMRoomCreate)evt.content);
+                var create = ((MatrixMRoomCreate) evt.content);
                 Creator = create.creator;
                 ShouldFederate = create.mfederate;
-            } else if (t == typeof(MatrixMRoomName)) {
-                Name = ((MatrixMRoomName)evt.content).name;
-            } else if (t == typeof(MatrixMRoomTopic)) {
-                Topic = ((MatrixMRoomTopic)evt.content).topic;
-            } else if (t == typeof(MatrixMRoomAliases)) {
-                Aliases = ((MatrixMRoomAliases)evt.content).aliases;
-            } else if (t == typeof(MatrixMRoomCanonicalAlias)) {
-                CanonicalAlias = ((MatrixMRoomCanonicalAlias)evt.content).alias;
-            } else if (t == typeof(MatrixMRoomJoinRules)) {
-                JoinRule = ((MatrixMRoomJoinRules)evt.content).join_rule;
-            } else if (t == typeof(MatrixMRoomJoinRules)) {
-                PowerLevels = ((MatrixMRoomPowerLevels)evt.content);
-            } else if (t == typeof(MatrixMRoomMember)) {
-                MatrixMRoomMember member = (MatrixMRoomMember)evt.content;
-                if (!api.RunningInitialSync) {
+            }
+            else if (t == typeof(MatrixMRoomName))
+            {
+                Name = ((MatrixMRoomName) evt.content).name;
+            }
+            else if (t == typeof(MatrixMRoomTopic))
+            {
+                Topic = ((MatrixMRoomTopic) evt.content).topic;
+            }
+            else if (t == typeof(MatrixMRoomAliases))
+            {
+                Aliases = ((MatrixMRoomAliases) evt.content).aliases;
+            }
+            else if (t == typeof(MatrixMRoomCanonicalAlias))
+            {
+                CanonicalAlias = ((MatrixMRoomCanonicalAlias) evt.content).alias;
+            }
+            else if (t == typeof(MatrixMRoomJoinRules))
+            {
+                JoinRule = ((MatrixMRoomJoinRules) evt.content).join_rule;
+            }
+            else if (t == typeof(MatrixMRoomJoinRules))
+            {
+                PowerLevels = ((MatrixMRoomPowerLevels) evt.content);
+            }
+            else if (t == typeof(MatrixMRoomMember))
+            {
+                MatrixMRoomMember member = (MatrixMRoomMember) evt.content;
+                if (!api.RunningInitialSync)
+                {
                     //Handle new join,leave etc
                     MatrixRoomMemberEvent Event = null;
-                    switch (member.membership) {
+                    switch (member.membership)
+                    {
                         case EMatrixRoomMembership.Invite:
-                        Event = OnUserInvited;
-                        break;
+                            Event = OnUserInvited;
+                            break;
                         case EMatrixRoomMembership.Join:
-                        Event = Members.ContainsKey (evt.state_key) ? OnUserChange : OnUserJoined;
-                        break;
+                            Event = Members.ContainsKey(evt.state_key) ? OnUserChange : OnUserJoined;
+                            break;
                         case EMatrixRoomMembership.Leave:
-                        Event = OnUserLeft;
-                        break;
+                            Event = OnUserLeft;
+                            break;
                         case EMatrixRoomMembership.Ban:
-                        Event = OnUserBanned;
-                        break;
+                            Event = OnUserBanned;
+                            break;
                     }
-                    if (Event != null) {
-                        Event.Invoke(evt.state_key, member);
-                    }
+
+                    Event?.Invoke(evt.state_key, member);
                 }
-                Members [evt.state_key] = member;
-            } else if (typeof(MatrixMRoomMessage).IsAssignableFrom (t)) {
-                messages.Add ((MatrixMRoomMessage)evt.content);
-                if (OnMessage != null) {
-                    if (MessageMaximumAge <= 0 || evt.age <= MessageMaximumAge) {
-                        try {
-                            OnMessage.Invoke (this, evt);
-                        } catch (Exception e) {
-                            #if DEBUG
-                            Console.WriteLine ("A OnMessage handler failed");
-                            Console.WriteLine (e);
-                            #endif
+
+                Members[evt.state_key] = member;
+            }
+            else if (typeof(MatrixMRoomMessage).IsAssignableFrom(t))
+            {
+                messages.Add((MatrixMRoomMessage) evt.content);
+                if (OnMessage != null)
+                {
+                    if (MessageMaximumAge <= 0 || evt.age <= MessageMaximumAge)
+                    {
+                        try
+                        {
+                            OnMessage.Invoke(this, evt);
+                        }
+                        catch (Exception e)
+                        {
+#if DEBUG
+                            Console.WriteLine("A OnMessage handler failed");
+                            Console.WriteLine(e);
+#endif
                         }
                     }
                 }
             }
 
-            if (OnEvent != null) {
-                OnEvent.Invoke (this, evt);
-            }
+            OnEvent?.Invoke(this, evt);
         }
 
 
@@ -171,10 +203,11 @@ namespace Matrix.Client
         /// This may fail if you do not have the required permissions.
         /// </summary>
         /// <param name="newName">New name.</param>
-        public void SetName(string newName){
-            MatrixMRoomName nameEvent = new MatrixMRoomName ();
+        public void SetName(string newName)
+        {
+            MatrixMRoomName nameEvent = new MatrixMRoomName();
             nameEvent.name = newName;
-            api.RoomStateSend (ID, "m.room.name", nameEvent);
+            api.RoomStateSend(ID, "m.room.name", nameEvent);
         }
 
         /// <summary>
@@ -182,44 +215,49 @@ namespace Matrix.Client
         /// This may fail if you do not have the required permissions.
         /// </summary>
         /// <param name="newTopic">New topic.</param>
-        public void SetTopic(string newTopic){
-            MatrixMRoomTopic topicEvent = new MatrixMRoomTopic ();
+        public void SetTopic(string newTopic)
+        {
+            MatrixMRoomTopic topicEvent = new MatrixMRoomTopic();
             topicEvent.topic = newTopic;
-            api.RoomStateSend (ID, "m.room.topic", topicEvent);
+            api.RoomStateSend(ID, "m.room.topic", topicEvent);
         }
 
         /// <summary>
         /// Send a new message to the room.
         /// </summary>
         /// <param name="message">Message.</param>
-        public void SendMessage(MatrixMRoomMessage message){
-            api.RoomMessageSend (ID, "m.room.message", message);
+        public void SendMessage(MatrixMRoomMessage message)
+        {
+            api.RoomMessageSend(ID, "m.room.message", message);
         }
 
         /// <summary>
         /// Send a MMessageText message to the room.
         /// </summary>
         /// <param name="body">The string body of the message</param>
-        public void SendMessage(string body){
-            MMessageText message = new MMessageText ();
+        public void SendMessage(string body)
+        {
+            MMessageText message = new MMessageText();
             message.body = body;
-            SendMessage (message);
+            SendMessage(message);
         }
 
-        public void SendNotice(string notice){
-            MMessageNotice message = new MMessageNotice ();
+        public void SendNotice(string notice)
+        {
+            MMessageNotice message = new MMessageNotice();
             message.body = notice;
-            SendMessage (message);
+            SendMessage(message);
         }
+
         /// <summary>
         /// Sends a state message.
         /// </summary>
         /// <param name="stateMessage">State message.</param>
         /// <param name="type">Type.</param>
         /// <param name="key">Key.</param>
-        public void SendState (MatrixRoomStateEvent stateMessage,string type, string key = "")
+        public void SendState(MatrixRoomStateEvent stateMessage, string type, string key = "")
         {
-            api.RoomStateSend (ID, type, stateMessage, key);
+            api.RoomStateSend(ID, type, stateMessage, key);
         }
 
         /// <summary>
@@ -227,9 +265,9 @@ namespace Matrix.Client
         /// </summary>
         /// <param name="typing">Whether the user is typing or not. If false, the timeout key can be omitted.</param>
         /// <param name="timeout">The length of time in milliseconds to mark this user as typing.</param>
-        public void SetTyping (bool typing, int timeout = 30000)
+        public void SetTyping(bool typing, int timeout = 30000)
         {
-            api.RoomTypingSend(ID,typing,timeout);
+            api.RoomTypingSend(ID, typing, timeout);
         }
 
         /// <summary>
@@ -237,70 +275,91 @@ namespace Matrix.Client
         /// <remarks> You must set all the values in powerlevels.</remarks>
         /// </summary>
         /// <param name="powerlevels">Powerlevels.</param>
-        public void ApplyNewPowerLevels(MatrixMRoomPowerLevels powerlevels){
-            api.RoomStateSend (ID,"m.room.power_levels",powerlevels);
+        public void ApplyNewPowerLevels(MatrixMRoomPowerLevels powerlevels)
+        {
+            api.RoomStateSend(ID, "m.room.power_levels", powerlevels);
         }
 
         /// <summary>
         /// Invite a user to the room by userid.
         /// </summary>
         /// <param name="userid">Userid.</param>
-        public void InviteToRoom(string userid){
-            api.InviteToRoom (ID, userid);
+        public void InviteToRoom(string userid)
+        {
+            api.InviteToRoom(ID, userid);
         }
 
         /// <summary>
         /// Invite a user to the room by their object.
         /// </summary>
         /// <param name="user">User.</param>
-        public void InviteToRoom(MatrixUser user){
-            InviteToRoom (user.UserID);
+        public void InviteToRoom(MatrixUser user)
+        {
+            InviteToRoom(user.UserID);
         }
 
         /// <summary>
         /// Leave the room on the server.
         /// </summary>
-        public void LeaveRoom() {
+        public void LeaveRoom()
+        {
             api.FlushMessageQueue();
-            api.RoomLeave (ID);
+            api.RoomLeave(ID);
         }
 
-        public void SetMemberDisplayName (string displayname)
+        public void SetMemberDisplayName(string displayname)
         {
             MatrixMRoomMember member;
-            if (!Members.TryGetValue (api.user_id, out member)) {
+            if (!Members.TryGetValue(api.user_id, out member))
+            {
                 throw new MatrixException("Couldn't find the user's membership event");
             }
+
             member.displayname = displayname;
             SendState(member, "m.room.member", api.user_id);
         }
 
-        public void SetMemberAvatar (string avatar)
+        public void SetMemberAvatar(string avatar)
         {
             MatrixMRoomMember member;
-            if (!Members.TryGetValue (api.user_id, out member)) {
+            if (!Members.TryGetValue(api.user_id, out member))
+            {
                 throw new MatrixException("Couldn't find the user's membership event");
             }
+
             member.avatar_url = avatar;
             SendState(member, "m.room.member", api.user_id);
         }
 
-        public void SetEphemeral (MatrixSyncEvents ev)
+        public void SetEphemeral(MatrixSyncEvents ev)
         {
             ephemeral = ev.events;
-            foreach (MatrixEvent evt in ephemeral) {
-                if (evt.type == "m.reciept" && OnRecieptsRecieved != null) {
-                    MatrixMReceipt rec = (MatrixMReceipt)evt.content;
-                    foreach (KeyValuePair<string,MatrixReceipts> kv in rec.receipts) {
-                        OnRecieptsRecieved.Invoke (kv.Key, kv.Value);
+            foreach (MatrixEvent evt in ephemeral)
+            {
+                if (evt.type == "m.reciept" && OnRecieptsRecieved != null)
+                {
+                    MatrixMReceipt rec = (MatrixMReceipt) evt.content;
+                    foreach (KeyValuePair<string, MatrixReceipts> kv in rec.receipts)
+                    {
+                        OnRecieptsRecieved.Invoke(kv.Key, kv.Value);
                     }
-                } else if (evt.type == "m.typing" && OnTypingChanged != null) {
-                    OnTypingChanged.Invoke(((MatrixMTyping)evt.content).user_ids);
+                }
+                else if (evt.type == "m.typing" && OnTypingChanged != null)
+                {
+                    OnTypingChanged.Invoke(((MatrixMTyping) evt.content).user_ids);
                 }
             }
-                if (OnEphemeralChanged != null) {
-                    OnEphemeralChanged.Invoke();
-                }
+
+            if (OnEphemeralChanged != null)
+            {
+                OnEphemeralChanged.Invoke();
             }
         }
+
+        public RoomTags GetTags()
+        {
+            return api.RoomGetTags(ID);
+        }
+
     }
+}

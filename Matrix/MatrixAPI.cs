@@ -5,6 +5,7 @@ using System.Threading;
 using Newtonsoft.Json.Linq;
 using Matrix.Structures;
 using Matrix.Backends;
+using Microsoft.Extensions.Logging;
 
 /**
  * This class contains all the methods needed to call the Matrix C2S API. The methods are split into files
@@ -17,6 +18,7 @@ namespace Matrix
     public delegate void MatrixAPIRoomInviteDelegate(string roomid, MatrixEventRoomInvited invited);
 	public partial class MatrixAPI
 	{
+		private ILogger log = Logger.Factory.CreateLogger<MatrixAPI>();
 		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
 		public virtual bool RunningInitialSync { get; private set; } = true;
@@ -105,7 +107,7 @@ namespace Matrix
 			MatrixAPIPendingEvent evt;
 			MatrixRequestError error;
 			while (pendingMessages.TryDequeue (out evt)) {
-				error = RoomMessageSend(evt);
+				error = RoomSend(evt);
 				if (!error.IsOk) {
 
 					if (error.MatrixErrorCode != MatrixErrorCode.M_UNKNOWN) { //M_UNKNOWN unoffically means it failed to validate.

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Concurrent;
 using Matrix.Structures;
+using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 
 namespace Matrix.Client
@@ -12,7 +13,7 @@ namespace Matrix.Client
     /// </summary>
     public class MatrixClient : IDisposable
     {
-
+        private ILogger log = Logger.Factory.CreateLogger<MatrixClient>();
         MatrixAPI api;
         public delegate void MatrixInviteDelegate(string roomid, MatrixEventRoomInvited joined);
 
@@ -44,6 +45,7 @@ namespace Matrix.Client
         /// <param name="URL">URL before /_matrix/</param>
         public MatrixClient (string URL)
         {
+            log.LogDebug($"Created new MatrixClient instance for {URL}");
             api = new MatrixAPI (URL);
             try{
                 string[] versions = api.ClientVersions ();
@@ -280,6 +282,7 @@ namespace Matrix.Client
             _rooms.TryGetValue(roomid,out room);
             if (room == null)
             {
+                log.LogInformation($"Don't have {roomid} synced, getting the room from /state");
                 // If we don't have the room, attempt to grab it's state.
                 var state = api.GetRoomState(roomid);
                 room = new MatrixRoom(api, roomid);

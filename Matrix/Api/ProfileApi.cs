@@ -8,7 +8,7 @@ namespace Matrix
     public partial class MatrixAPI
     {
         [MatrixSpec(EMatrixSpecApiVersion.R040, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-profile-userid")]
-        public MatrixProfile ClientProfile(string userid){
+        public virtual MatrixProfile ClientProfile(string userid){
             MatrixRequestError error = mbackend.Get ("/_matrix/client/r0/profile/" + userid,true, out var response);
             if (error.IsOk) {
                 return response.ToObject<MatrixProfile> ();

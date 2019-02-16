@@ -13,7 +13,17 @@ The SDK is built against `netstandard2.0`, and will work with .NET core projects
 
 A nuget exists for this project at https://www.nuget.org/packages/Half-Shot.Matrix
 
-There is a very barebones client included with the SDK.
+You can install the package via `dotnet`:
+
+```shell
+dotnet add package Half-Shot.Matrix --version 0.1.5 
+```
+
+or for `Visual Studio Package Manager`:
+
+```shell
+Install-Package Half-Shot.Matrix -Version 0.1.5 
+```
 
 ## Documentation
 

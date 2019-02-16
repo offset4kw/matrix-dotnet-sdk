@@ -104,7 +104,7 @@ namespace Matrix.Client
                 {
                     foreach (var member in Members)
                     {
-                        if (member.Key == api.user_id || member.Value.membership == EMatrixRoomMembership.Leave && skippingLeave)
+                        if (member.Key == api.UserId || member.Value.membership == EMatrixRoomMembership.Leave && skippingLeave)
                         {
                             continue;
                         }
@@ -271,27 +271,36 @@ namespace Matrix.Client
         /// Send a new message to the room.
         /// </summary>
         /// <param name="message">Message.</param>
-        public void SendMessage(MatrixMRoomMessage message)
+        /// <returns>Event ID of the sent message</returns>
+        public string SendMessage(MatrixMRoomMessage message)
         {
-            api.RoomMessageSend(ID, "m.room.message", message);
+            var t = api.RoomMessageSend(ID, "m.room.message", message);
+            t.Wait();
+            return t.Result;
+        }
+
+        public Task <string> SendMessageAsync(MatrixMRoomMessage message)
+        {
+            return api.RoomMessageSend(ID, "m.room.message", message);
         }
 
         /// <summary>
         /// Send a MMessageText message to the room.
         /// </summary>
         /// <param name="body">The string body of the message</param>
-        public void SendMessage(string body)
+        /// <returns>Event ID of the sent message</returns>
+        public string SendText(string body)
         {
             MMessageText message = new MMessageText();
             message.body = body;
-            SendMessage(message);
+            return SendMessage(message);
         }
 
-        public void SendNotice(string notice)
+        public string SendNotice(string notice)
         {
             MMessageNotice message = new MMessageNotice();
             message.body = notice;
-            SendMessage(message);
+            return SendMessage(message);
         }
 
         /// <summary>
@@ -300,9 +309,10 @@ namespace Matrix.Client
         /// <param name="stateMessage">State message.</param>
         /// <param name="type">Type.</param>
         /// <param name="key">Key.</param>
-        public void SendState(MatrixRoomStateEvent stateMessage, string type, string key = "")
+        /// <returns>Event ID of the sent message</returns>
+        public string SendState(MatrixRoomStateEvent stateMessage, string type, string key = "")
         {
-            api.RoomStateSend(ID, type, stateMessage, key);
+            return api.RoomStateSend(ID, type, stateMessage, key);
         }
 
         /// <summary>
@@ -348,32 +358,31 @@ namespace Matrix.Client
         /// </summary>
         public void LeaveRoom()
         {
-            api.FlushMessageQueue();
             api.RoomLeave(ID);
         }
 
         public void SetMemberDisplayName(string displayname)
         {
             MatrixMRoomMember member;
-            if (!Members.TryGetValue(api.user_id, out member))
+            if (!Members.TryGetValue(api.UserId, out member))
             {
                 throw new MatrixException("Couldn't find the user's membership event");
             }
 
             member.displayname = displayname;
-            SendState(member, "m.room.member", api.user_id);
+            SendState(member, "m.room.member", api.UserId);
         }
 
         public void SetMemberAvatar(string avatar)
         {
             MatrixMRoomMember member;
-            if (!Members.TryGetValue(api.user_id, out member))
+            if (!Members.TryGetValue(api.UserId, out member))
             {
                 throw new MatrixException("Couldn't find the user's membership event");
             }
 
             member.avatar_url = avatar;
-            SendState(member, "m.room.member", api.user_id);
+            SendState(member, "m.room.member", api.UserId);
         }
 
         public void SetEphemeral(MatrixSyncEvents ev)

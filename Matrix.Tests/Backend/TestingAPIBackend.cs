@@ -31,6 +31,10 @@ namespace Matrix.Backends
             return null;
         }
 		
+		public Task<MatrixAPIResult> PutAsync  (string apiPath, bool authenticate, JToken request) {
+			return null;
+		}
+		
 		public MatrixRequestError Delete  (string apiPath, bool authenticate, out JToken result) {
 			result = null;
 			return null;

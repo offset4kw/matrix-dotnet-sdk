@@ -22,7 +22,7 @@ namespace Matrix.Tests
 
         public static Mock<MatrixAPI> MockApi() {
             var mock = new Mock<MatrixAPI>("https://localhost");
-            mock.Setup(f => f.user_id).Returns("@foobar:localhost");
+            mock.Setup(f => f.UserId).Returns("@foobar:localhost");
             mock.Setup(f => f.BaseURL).Returns("https://localhost");
             mock.Setup(f => f.GetSyncToken()).Returns("AGoodSyncToken");
             mock.Setup(f => f.GetAccessToken()).Returns("AGoodAccessToken");

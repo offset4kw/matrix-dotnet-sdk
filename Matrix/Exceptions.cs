@@ -13,22 +13,15 @@ namespace Matrix
 		}
 	}
 
-	public class MatrixUnsuccessfulConnection : MatrixException{
-		public MatrixUnsuccessfulConnection(string message) : base(message){
-
-		}
-		public MatrixUnsuccessfulConnection(string message,Exception innerException) : base(message,innerException){
-			
-		}
-	}
-
-	public class MatrixServerError : MatrixException{
+	public class MatrixServerError : MatrixException {
 		public readonly MatrixErrorCode ErrorCode;
 		public readonly string ErrorCodeStr;
+		public readonly JObject ErrorObject;
 
-		public MatrixServerError (string errorcode, string message) : base(message){
-			if (!Enum.TryParse<MatrixErrorCode> (errorcode, out ErrorCode)) {
+		public MatrixServerError (string errorcode, string message, JObject errorObject) : base(message){
+			if (!Enum.TryParse (errorcode, out ErrorCode)) {
 				ErrorCode = MatrixErrorCode.CL_UNKNOWN_ERROR_CODE;
+				ErrorObject = errorObject;
 			}
 			ErrorCodeStr = errorcode;
 		}

@@ -31,3 +31,4 @@ If you have a pressing issue, you can find me on matrix as [@Half-Shot:half-shot
 
 - [matrix-card-bot](https://github.com/Half-Shot/matrix-card-bot)
 - [matrix-mpd-dj](https://github.com/Half-Shot/matrix-mpd-dj)
+- [matrix-cache](https://github.com/Half-Shot/matrix-cache)

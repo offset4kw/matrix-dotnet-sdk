@@ -20,35 +20,31 @@ namespace Matrix
 {
     public delegate void MatrixAPIRoomJoinedDelegate(string roomid, MatrixEventRoomJoined joined);
     public delegate void MatrixAPIRoomInviteDelegate(string roomid, MatrixEventRoomInvited invited);
+	// We need to mock MatrixAPI, hence needing virtuals.
+	// ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
 	public partial class MatrixAPI
 	{
-		private ILogger log = Logger.Factory.CreateLogger<MatrixAPI>();
+		public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
+		public event MatrixAPIRoomInviteDelegate SyncInviteEvent;
+		
 		public bool IsConnected { get; private set; }
 		public virtual bool RunningInitialSync { get; private set; } = true;
 		public virtual string BaseURL  { get; private set; }
 		public int BadSyncTimeout { get; set; } = 25000;
-		public int FailMessageAfter { get; set; } = 300;
-		public virtual string user_id {get; set;} = null;
+		public virtual string UserId {get; set;}
 
-		string syncToken = "";
-		bool IsAS;
-
-		MatrixLoginResponse current_login = null;
-		Thread poll_thread;
-		bool shouldRun = false;
-		ConcurrentQueue<MatrixAPIPendingEvent> pendingMessages  = new ConcurrentQueue<MatrixAPIPendingEvent> ();
-		Random rng;
-
-		static JSONSerializer matrixSerializer = new JSONSerializer ();
-
-		JSONEventConverter event_converter;
-
-		IMatrixAPIBackend mbackend;
-
-
-        public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
-        public event MatrixAPIRoomInviteDelegate SyncInviteEvent;
 		private MatrixVersions versions;
+		private string syncToken = "";
+		private ILogger log = Logger.Factory.CreateLogger<MatrixAPI>();
+		private bool IsAS;
+		private MatrixLoginResponse current_login;
+		private Thread poll_thread;
+		private bool shouldRun;
+		private Random rng;
+		private JSONEventConverter event_converter;
+		private IMatrixAPIBackend mbackend;
+		
+		static readonly JSONSerializer matrixSerializer = new JSONSerializer ();
 
 		/// <summary>
 		/// Timeout in seconds between sync requests.
@@ -76,7 +72,7 @@ namespace Matrix
 			IsAS = true;
 			mbackend = new HttpBackend (URL,user_id);
 			mbackend.SetAccessToken(application_token);
-			this.user_id = user_id;
+			UserId = user_id;
 			BaseURL = URL;
 			rng = new Random (DateTime.Now.Millisecond);
 			event_converter = new JSONEventConverter ();
@@ -106,33 +102,6 @@ namespace Matrix
 			event_converter.AddEventType(msgtype, type);
 		}
 
-        public void FlushMessageQueue ()
-		{
-			MatrixAPIPendingEvent evt;
-			MatrixRequestError error;
-			while (pendingMessages.TryDequeue (out evt)) {
-				error = RoomSend(evt);
-				if (!error.IsOk) {
-
-					if (error.MatrixErrorCode != MatrixErrorCode.M_UNKNOWN) { //M_UNKNOWN unoffically means it failed to validate.
-						Console.WriteLine("Trying to resend failed message of type " + evt.type);
-						evt.backoff_duration += evt.backoff;
-						evt.backoff = evt.backoff == 0 ? 2: (int)Math.Pow(evt.backoff,2);
-						if (evt.backoff_duration > FailMessageAfter) {
-							evt.backoff = 0;
-							continue; //Give up trying to send
-						}
-
-						Console.WriteLine($"Waiting {evt.backoff} seconds before resending");
-
-						Thread.Sleep(evt.backoff*1000);
-						pendingMessages.Enqueue (evt);
-
-					}
-				}
-			}
-        }
-
 		private void pollThread_Run(){
 			while (shouldRun) {
 				try
@@ -145,7 +114,6 @@ namespace Matrix
 					Console.WriteLine (e);
 					#endif
 				}
-                FlushMessageQueue();
 				Thread.Sleep(250);
 			}
 		}
@@ -164,10 +132,8 @@ namespace Matrix
 			if (current_login != null) {
 				return current_login.access_token;
 			}
-			else
-			{
-				return null;
-			}
+
+			return null;
 		}
 
 		public virtual MatrixLoginResponse GetCurrentLogin ()
@@ -177,7 +143,7 @@ namespace Matrix
 
 		public void SetLogin(MatrixLoginResponse response){
 			current_login = response;
-			user_id = response.user_id;
+			UserId = response.user_id;
 			mbackend.SetAccessToken(response.access_token);
 		}
 
@@ -256,7 +222,7 @@ namespace Matrix
 			}
 			JObject request = JObject.FromObject( new {
 				type = "m.login.application_service",
-				user = user
+				user
 			});
 
 			MatrixRequestError error = mbackend.Post("/_matrix/client/r0/register",true,request,out var result);
@@ -265,10 +231,6 @@ namespace Matrix
 			}
 		}
 
-	public class MatrixAPIPendingEvent : MatrixEvent{
-		public int txnId;
-		public int backoff = 0;
-		public int backoff_duration = 0;
 		public void ThrowIfNotSupported([CallerMemberName] string name = null)
 		{
 			if (name == null)

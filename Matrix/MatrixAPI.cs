@@ -181,15 +181,6 @@ namespace Matrix
 			mbackend.SetAccessToken(response.access_token);
 		}
 
-		public void ClientTokenRefresh(string refreshToken){
-			JObject request = new JObject ();
-			request.Add ("refresh_token", refreshToken);
-			MatrixRequestError error = mbackend.Post ("/_matrix/r0/tokenrefresh", true, request,out var response);
-			if (!error.IsOk) {
-				throw new MatrixServerError (error.MatrixErrorCode.ToString(), error.MatrixError);
-			}
-		}
-
 		public static JObject ObjectToJson (object data)
 		{
 			JObject container;

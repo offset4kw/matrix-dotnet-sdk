@@ -2,7 +2,8 @@
 
 This project provides a SDK for interfacing with the Matrix Protocol.
 
-It has support for a limited subset of the r0.0.1 protocol C2S and AS APIs presently.
+It has support for a limited subset of the C2S and AS APIs presently. Support for new endpoints is easy to add,
+so please ask if you want a endpoint to be added.
 
 The SDK is built against `netstandard2.0`, and will work with .NET core projects.
 

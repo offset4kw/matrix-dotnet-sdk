@@ -7,20 +7,23 @@ namespace Matrix.Backends
 		public readonly string MatrixError;
 		public readonly MatrixErrorCode MatrixErrorCode;
 		public readonly HttpStatusCode Status;
+		public readonly int RetryAfter;
 		public bool IsOk{ get{return MatrixErrorCode == MatrixErrorCode.CL_NONE && Status == HttpStatusCode.OK;}}
 
-		public MatrixRequestError(string merror,MatrixErrorCode code,HttpStatusCode status){
+		public MatrixRequestError(string merror, MatrixErrorCode code, HttpStatusCode status, int retryAfter = -1){
 			MatrixError = merror;
 			MatrixErrorCode = code;
 			Status = status;
+			RetryAfter = retryAfter;
 		}
 
-		public string GetErrorString(){
+		public string GetErrorString()
+		{
 			if (Status != HttpStatusCode.OK) {
 				return "Got a Http Error :" + Status + " during request.";
-			} else {
-				return "Got a Matrix Error: " + MatrixErrorCode + " '" + MatrixError + "'";
 			}
+
+			return "Got a Matrix Error: " + MatrixErrorCode + " '" + MatrixError + "'";
 		}
 
 		public override string ToString ()

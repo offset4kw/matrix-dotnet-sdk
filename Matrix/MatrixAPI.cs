@@ -23,7 +23,6 @@ namespace Matrix
 	public partial class MatrixAPI
 	{
 		private ILogger log = Logger.Factory.CreateLogger<MatrixAPI>();
-		public const string VERSION = "r0.0.1";
 		public bool IsConnected { get; private set; }
 		public virtual bool RunningInitialSync { get; private set; } = true;
 		public virtual string BaseURL  { get; private set; }
@@ -49,6 +48,7 @@ namespace Matrix
 
         public event MatrixAPIRoomJoinedDelegate SyncJoinEvent;
         public event MatrixAPIRoomInviteDelegate SyncInviteEvent;
+		private MatrixVersions versions;
 
 		/// <summary>
 		/// Timeout in seconds between sync requests.
@@ -204,10 +204,6 @@ namespace Matrix
 			return container;
 		}
 
-		public static bool IsVersionSupported(string[] version){
-			return (new List<string> (version).Contains (VERSION));//TODO: Support version checking properly.
-		}
-
 		public bool IsLoggedIn(){
 			//TODO: Check token is still valid
 			return current_login != null;
@@ -228,13 +224,16 @@ namespace Matrix
 		}
 
 		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-versions")]
-		public string[] ClientVersions(){
+		public MatrixVersions ClientVersions(){
 			MatrixRequestError error = mbackend.Get ("/_matrix/client/versions",false, out var result);
-			if (error.IsOk) {
-				return (result as JObject)?.GetValue ("versions").ToObject<string[]> ();
-			} else {
-				throw new MatrixException ("Non OK result returned from request");//TODO: Need a better exception
+			if (error.IsOk)
+			{
+				var res = result.ToObject<MatrixVersions>();
+				versions = res;
+				return res;
 			}
+
+			throw new MatrixException (error.ToString());//TODO: Need a better exception
 		}
 
 		[MatrixSpec(EMatrixSpecApiVersion.R040, EMatrixSpecApi.ClientServer,
@@ -263,11 +262,45 @@ namespace Matrix
 				throw new MatrixException (error.ToString());//TODO: Need a better exception
 			}
 		}
-	}
 
 	public class MatrixAPIPendingEvent : MatrixEvent{
 		public int txnId;
 		public int backoff = 0;
 		public int backoff_duration = 0;
+		public void ThrowIfNotSupported([CallerMemberName] string name = null)
+		{
+			if (name == null)
+			{
+				return;
+			}
+			if (versions == null)
+			{
+				ClientVersions();
+			}
+			MatrixSpec spec = typeof(MatrixAPI).GetMethod(name).GetCustomAttribute(typeof(MatrixSpec)) as MatrixSpec;
+			if (spec == null)
+			{
+				#if DEBUG
+				log.LogWarning($"{name} has no MatrixSpec attribute, cannot determine homeserver support");
+				#endif
+				return;
+			}
+			// Ensure we support a version of the spec >= the min version and <= the last version.
+			if (!versions.supportedVersions().Any(
+				version => version >= spec.MinVersion && version <= spec.LastVersion)
+			)
+			{
+				return;
+			}
+			string msg = "This homeserver doesn't support this endpoint.";
+			if (spec.LastVersion != EMatrixSpecApiVersion.Unknown)
+			{
+				msg += $"The endpoint was removed in spec version {MatrixSpec.GetStringForVersion(spec.LastVersion)}";
+			} else
+			{
+				msg += $"The endpoint was added in spec version {MatrixSpec.GetStringForVersion(spec.MinVersion)}";
+			}
+			throw new MatrixException(msg);
+		}
 	}
 }

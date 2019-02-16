@@ -9,7 +9,8 @@ namespace Matrix
     public partial class MatrixAPI
     {
         [MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-r0-sync")]
-        public void ClientSync(bool ConnectionFailureTimeout = false){
+        public void ClientSync(bool ConnectionFailureTimeout = false) {
+            ThrowIfNotSupported();
             string url = "/_matrix/client/r0/sync?timeout="+SyncTimeout;
             if (!String.IsNullOrEmpty(syncToken)) {
                 url += "&since=" + syncToken;
@@ -51,7 +52,6 @@ namespace Matrix
         public void StopSyncThreads(){
             shouldRun = false;
             poll_thread.Join ();
-            FlushMessageQueue();
         }
     }
 }

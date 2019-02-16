@@ -8,6 +8,7 @@ namespace Matrix
     {
         public PublicRooms PublicRooms(int limit, string since, string server)
         {
+            ThrowIfNotSupported();
             var qs = HttpUtility.ParseQueryString(string.Empty);
             if (limit != 0)
                 qs.Set("limit", limit.ToString());
@@ -24,6 +25,7 @@ namespace Matrix
 		
         public void DeleteFromRoomDirectory(string alias)
         {
+            ThrowIfNotSupported();
             MatrixRequestError error = mbackend.Delete($"/_matrix/client/r0/directory/room/{alias}", true, out var _);
             if (!error.IsOk) {
                 throw new MatrixException (error.ToString());

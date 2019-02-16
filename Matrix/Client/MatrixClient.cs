@@ -1,9 +1,8 @@
 using System;
-using System.Linq;
 using System.Collections.Concurrent;
+using System.Linq;
 using Matrix.Structures;
 using Microsoft.Extensions.Logging;
-using YamlDotNet.Serialization;
 
 namespace Matrix.Client
 {
@@ -27,7 +26,7 @@ namespace Matrix.Client
 
         public event MatrixInviteDelegate OnInvite;
 
-        public string UserId { get { return api.user_id; } }
+        public string UserId { get { return api.UserId; } }
         
         /// <summary>
         /// Get the underlying API that MatrixClient wraps. Here be dragons 🐲.
@@ -48,11 +47,7 @@ namespace Matrix.Client
             log.LogDebug($"Created new MatrixClient instance for {URL}");
             api = new MatrixAPI (URL);
             try{
-                string[] versions = api.ClientVersions ();
-                if(!MatrixAPI.IsVersionSupported(versions)){
-                    Console.WriteLine("Warning: Client version is not supported by the server");
-                    Console.WriteLine("Client supports up to "+MatrixAPI.VERSION);
-                }
+                api.ClientVersions ();
                 api.SyncJoinEvent += MatrixClient_OnEvent;
                 api.SyncInviteEvent += MatrixClient_OnInvite;
 
@@ -74,16 +69,6 @@ namespace Matrix.Client
         public MatrixClient (string URL, string application_token, string userid)
         {
             api = new MatrixAPI (URL,application_token, userid);
-            try{
-                string[] versions = api.ClientVersions ();
-                if(!MatrixAPI.IsVersionSupported(versions)){
-                    Console.WriteLine("Warning: Client version is not supported by the server");
-                    Console.WriteLine("Client supports up to "+MatrixAPI.VERSION);
-                }
-            }
-            catch(MatrixException e){
-                throw new MatrixException("An exception occured while trying to connect",e);
-            }
         }
 
         /// <summary>
@@ -180,7 +165,8 @@ namespace Matrix.Client
         /// <param name="refresh_token">Refresh token.</param>
         public void UseExistingToken (string user_id, string access_token, string refresh_token = null)
         {
-            api.SetLogin(new MatrixLoginResponse(){
+            api.SetLogin(new MatrixLoginResponse
+            {
                 user_id = user_id,
                 access_token = access_token,
                 refresh_token = refresh_token,
@@ -195,7 +181,7 @@ namespace Matrix.Client
         /// <returns>A MatrixUser object</returns>
         /// <param name="userid">User ID</param>
         public MatrixUser GetUser(string userid = null){
-            userid = userid == null ? api.user_id : userid;
+            userid = userid == null ? api.UserId : userid;
             MatrixProfile profile = api.ClientProfile (userid);
             if (profile != null) {
                 return new MatrixUser (profile, userid);
@@ -205,12 +191,12 @@ namespace Matrix.Client
 
         public void SetDisplayName (string displayname)
         {
-            api.ClientSetDisplayName(api.user_id, displayname);
+            api.ClientSetDisplayName(api.UserId, displayname);
         }
 
         public void SetAvatar (string avatar)
         {
-            api.ClientSetAvatar(api.user_id, avatar);
+            api.ClientSetAvatar(api.UserId, avatar);
         }
 
         /// <summary>
@@ -304,16 +290,17 @@ namespace Matrix.Client
                 if(x.CanonicalAlias == alias){
                     return true;
                 }
-                else if(x.Aliases != null){
+
+                if(x.Aliases != null){
                     return x.Aliases.Contains(alias);
                 }
                 return false;
             });
             if (room != default(MatrixRoom)) {
                 return room;
-            } else {
-                return null;
             }
+
+            return null;
         }
 
         /// <summary>

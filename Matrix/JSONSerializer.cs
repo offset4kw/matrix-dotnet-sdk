@@ -1,11 +1,12 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
 namespace Matrix
 {
 	public class JSONSerializer : JsonSerializer
 	{
-		public JSONSerializer () : base()
+		public JSONSerializer ()
 		{
 			NullValueHandling = NullValueHandling.Ignore;
 			Converters.Add (new JSONEnumConverter ());
@@ -13,10 +14,6 @@ namespace Matrix
 		}
 	}
 	public class JSONEnumConverter : JsonConverter{
-		public JSONEnumConverter() : base(){
-
-		}
-
 		public override bool CanRead {
 			get {
 				return false;

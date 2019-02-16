@@ -31,7 +31,7 @@ namespace Matrix
 			{"m.emote",		typeof(MMessageEmote)},
 			{"m.image",		typeof(MMessageImage)},
 			{"m.file",		typeof(MMessageFile)},
-			{"m.location",	typeof(MMessageLocation)},
+			{"m.location",	typeof(MMessageLocation)}
 		};
 
 		public JSONEventConverter(Dictionary<string,Type> customMsgTypes = null){

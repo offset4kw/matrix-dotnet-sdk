@@ -246,6 +246,17 @@ namespace Matrix
 			}
 			return (result as JObject)?.GetValue("joined_rooms").ToObject<List<string>>();
 		}
+		
+		[MatrixSpec(EMatrixSpecApiVersion.R040, EMatrixSpecApi.ClientServer,
+			"get-matrix-client-r0-joined_members")]
+		public Dictionary<string, MatrixProfile> GetJoinedMembers(string roomId)
+		{
+			MatrixRequestError error = mbackend.Get($"/_matrix/client/r0/rooms/{roomId}/joined_members", true, out var result);
+			if (!error.IsOk) {
+				throw new MatrixException (error.ToString());
+			}
+			return (result as JObject)?.GetValue("joined").ToObject<Dictionary<string, MatrixProfile>>();
+		}
 
 		public void RegisterUserAsAS (string user)
 		{

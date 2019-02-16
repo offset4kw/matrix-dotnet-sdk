@@ -9,7 +9,7 @@ The SDK is built against `netstandard2.0`, and will work with .NET core projects
 
 ## How to Use
 
-[![Build Status](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk.svg?branch=dotnet-core)](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk)
+[![Build Status](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk.svg?branch=master)](https://travis-ci.org/Half-Shot/matrix-dotnet-sdk)
 
 A nuget exists for this project at https://www.nuget.org/packages/Half-Shot.Matrix
 

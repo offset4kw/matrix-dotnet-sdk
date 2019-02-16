@@ -4,7 +4,7 @@
     <PackageId>Half-Shot.Matrix</PackageId>
     <AssemblyName>Matrix</AssemblyName>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <Version>0.1.0</Version>
+    <Version>0.1.5</Version>
     <Authors>Half-Shot</Authors>
     <Owners>Half-Shot</Owners>
     <Title>Matrix.org SDK</Title>
@@ -24,6 +24,6 @@
     <PackageReference Include="YamlDotNet" Version="5.3.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="bin\**;obj\**;Tests\**\*" />
+    <Compile Include="**\*.cs" Exclude="bin\**;obj\**;" />
   </ItemGroup>
 </Project>

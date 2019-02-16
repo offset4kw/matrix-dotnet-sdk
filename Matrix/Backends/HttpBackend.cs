@@ -48,15 +48,25 @@ namespace Matrix.Backends
 			return apiPath;
 		}
 
-		private async Task <Tuple<JToken, MatrixRequestError>> RequestWrap (Task<HttpResponseMessage> task){
+		private async Task <MatrixAPIResult> RequestWrap (Task<HttpResponseMessage> task)
+		{
+			var apiResult = new MatrixAPIResult();
 			try
 			{
 				Tuple<JToken, HttpStatusCode> res = await GenericRequest (task);
-				return new Tuple<JToken, MatrixRequestError>(res.Item1, new MatrixRequestError ("", MatrixErrorCode.CL_NONE, res.Item2));
+				apiResult.result = res.Item1;
+				apiResult.error = new MatrixRequestError("", MatrixErrorCode.CL_NONE, res.Item2);
 			}
-			catch(MatrixServerError e){
-				return new Tuple<JToken, MatrixRequestError>(null, new MatrixRequestError (e.Message, e.ErrorCode, HttpStatusCode.OK));
+			catch(MatrixServerError e)
+			{
+				int retryAfter = -1;
+				if (e.ErrorObject.ContainsKey("retry_after_ms"))
+				{
+					retryAfter = e.ErrorObject["retry_after_ms"].ToObject<int>();
+				}
+				apiResult.error = new MatrixRequestError(e.Message, e.ErrorCode, HttpStatusCode.InternalServerError, retryAfter);
 			}
+			return apiResult;
 		}
 
 		public MatrixRequestError Get (string apiPath, bool authenticate, out JToken result){
@@ -64,8 +74,8 @@ namespace Matrix.Backends
 			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
 			var res = RequestWrap(task);
 			res.Wait();
-			result = res.Result.Item1;
-			return res.Result.Item2;
+			result = res.Result.result;
+			return res.Result.error;
 		}
 		
 		public MatrixRequestError Delete (string apiPath, bool authenticate, out JToken result){
@@ -73,20 +83,27 @@ namespace Matrix.Backends
 			Task<HttpResponseMessage> task = client.DeleteAsync(apiPath);
 			var res = RequestWrap(task);
 			res.Wait();
-			result = res.Result.Item1;
-			return res.Result.Item2;
+			result = res.Result.result;
+			return res.Result.error;
 		}
 
 		public MatrixRequestError Put(string apiPath, bool authenticate, JToken data, out JToken result){
-			StringContent content = new StringContent (data.ToString (), Encoding.UTF8, "application/json");
+			StringContent content = new StringContent (data.ToString(Formatting.None), Encoding.UTF8, "application/json");
 			apiPath = getPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
 			var res = RequestWrap(task);
 			res.Wait();
-			result = res.Result.Item1;
-			return res.Result.Item2;
+			result = res.Result.result;
+			return res.Result.error;
 		}
 
+		public Task<MatrixAPIResult> PutAsync(string apiPath, bool authenticate, JToken request)
+		{
+			StringContent content = new StringContent (request.ToString(Formatting.None), Encoding.UTF8, "application/json");
+			apiPath = getPath (apiPath,authenticate);
+			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
+			return RequestWrap(task);
+		}
 
 		public MatrixRequestError Post(string apiPath, bool authenticate, JToken data, Dictionary<string,string> headers , out JToken result){
 			StringContent content;
@@ -104,8 +121,8 @@ namespace Matrix.Backends
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
 			var res = RequestWrap(task);
 			res.Wait();
-			result = res.Result.Item1;
-			return res.Result.Item2;
+			result = res.Result.result;
+			return res.Result.error;
 		}
 
 		public MatrixRequestError Post(string apiPath, bool authenticate, byte[] data, Dictionary<string, string> headers,
@@ -130,8 +147,8 @@ namespace Matrix.Backends
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath, content);
 			var res = RequestWrap(task);
 			res.Wait();
-			result = res.Result.Item1;
-			return res.Result.Item2;
+			result = res.Result.result;
+			return res.Result.error;
 		}
 
 		public MatrixRequestError Post(string apiPath, bool authenticate, JToken data, out JToken result){
@@ -163,7 +180,7 @@ namespace Matrix.Backends
 			string json = await stask;
 			result = JToken.Parse(json);
 			if (result.Type == JTokenType.Object && result ["errcode"] != null) {
-				throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> ());
+				throw new MatrixServerError (result ["errcode"].ToObject<string> (), result ["error"].ToObject<string> (), result as JObject);
 			}
 			return new Tuple<JToken, HttpStatusCode>(result, httpResult.StatusCode);
 		}

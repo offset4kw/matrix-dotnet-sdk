@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+
 namespace Matrix.Backends
 {
 	public interface IMatrixAPIBackend

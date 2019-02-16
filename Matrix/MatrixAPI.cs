@@ -1,11 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using Newtonsoft.Json.Linq;
-using Matrix.Structures;
+using System.Threading.Tasks;
 using Matrix.Backends;
+using Matrix.Structures;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 /**
  * This class contains all the methods needed to call the Matrix C2S API. The methods are split into files

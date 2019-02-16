@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using Matrix.Structures;
-using YamlDotNet.Core.Tokens;
 
 namespace Matrix.Client
 {

@@ -1,5 +1,5 @@
 ﻿using System;
-using Newtonsoft.Json.Linq;
+
 namespace Matrix.Structures
 {
 	public abstract class MatrixLogin

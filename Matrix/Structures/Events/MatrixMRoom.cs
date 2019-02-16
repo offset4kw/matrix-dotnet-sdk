@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Matrix.Structures
+﻿namespace Matrix.Structures
 {
 	public enum EMatrixRoomJoinRules{
 		Public,

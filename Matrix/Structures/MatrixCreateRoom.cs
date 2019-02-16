@@ -1,6 +1,4 @@
-﻿using System;
-using Matrix;
-namespace Matrix.Structures
+﻿namespace Matrix.Structures
 {
 	public class MatrixCreateRoom
 	{

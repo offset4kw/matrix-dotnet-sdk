@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
-using System.Linq;
+
 namespace Matrix.Structures
 {
 	/// <summary>

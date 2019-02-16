@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Text;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Newtonsoft.Json.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Matrix.Backends
 {
 	public class HttpBackend : IMatrixAPIBackend

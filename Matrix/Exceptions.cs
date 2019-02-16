@@ -1,5 +1,7 @@
 ﻿using System;
 using Matrix.Backends;
+using Newtonsoft.Json.Linq;
+
 namespace Matrix
 {
 	public class MatrixException : Exception {

@@ -1,5 +1,5 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
+
 namespace Matrix.Backends
 {
 	public class MatrixRequestError

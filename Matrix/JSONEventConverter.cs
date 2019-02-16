@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
+using Matrix.Structures;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Converters;
-using Matrix.Structures;
+
 namespace Matrix
 {
 	public class JSONEventConverter : JsonConverter

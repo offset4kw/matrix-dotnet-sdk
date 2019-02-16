@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Linq;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using Matrix.Structures;
 using Matrix.Client;
+using Matrix.Structures;
 using Newtonsoft.Json;
+
 namespace Matrix.AppService
 {
 	struct ASEventBatch{

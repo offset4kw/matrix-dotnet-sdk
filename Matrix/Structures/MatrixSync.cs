@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+﻿using System.Collections.Generic;
+
 namespace Matrix.Structures
 {
 	/// <summary>

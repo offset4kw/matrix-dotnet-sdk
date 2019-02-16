@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Matrix
+﻿namespace Matrix
 {
 	public class MatrixInvite
 	{

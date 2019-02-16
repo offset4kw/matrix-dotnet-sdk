@@ -1,5 +1,5 @@
-﻿using System;
-using Matrix.Structures;
+﻿using Matrix.Structures;
+
 namespace Matrix.Client
 {
 	/// <summary>

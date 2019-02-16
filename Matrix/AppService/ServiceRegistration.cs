@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
+using System.IO;
 using YamlDotNet.Serialization;
+
 namespace Matrix.AppService
 {
 	public struct AppServiceNamespace{

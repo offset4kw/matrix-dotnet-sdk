@@ -22,21 +22,15 @@ namespace Matrix.Structures
 		// Special case for https://matrix.org/docs/spec/r0.0.1/client_server.html#m-room-member
 		public MatrixStrippedState[] invite_room_state;
 
-		public MatrixEvent ()
-		{
-
-		}
-
 		public override string ToString ()
 		{
 			string str = "Event {";
-			foreach (System.Reflection.PropertyInfo prop in typeof(MatrixEvent).GetProperties()) {
-				str += "   " + (prop.Name + ": " + prop.GetValue (this).ToString ());
+			foreach (PropertyInfo prop in typeof(MatrixEvent).GetProperties()) {
+				str += "   " + (prop.Name + ": " + prop.GetValue (this));
 			}
 			str += "}";
 			return str;
 		}
-
 	}
 
 	public class MatrixEventUnsigned {
@@ -57,5 +51,10 @@ namespace Matrix.Structures
 		public bool limited;
 		public string prev_batch;
 		public MatrixEvent[] events;
+	}
+
+	public static class MatrixEventType
+	{
+		public const string RoomMember = "m.room.member";
 	}
 }

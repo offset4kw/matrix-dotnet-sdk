@@ -87,31 +87,31 @@ namespace Matrix.AppService
 			ICollection<AppServiceNamespace> aliases,
 			ICollection<AppServiceNamespace> rooms
 		 ){
-			this.URL = url;
-			this.Localpart = localpart;
-			this.NamespacesUsers = users;
-			this.NamespacesAliases = aliases;
-			this.NamespacesRooms = rooms;
+			URL = url;
+			Localpart = localpart;
+			NamespacesUsers = users;
+			NamespacesAliases = aliases;
+			NamespacesRooms = rooms;
 
-			this.ID = GenerateToken();
-			this.HomeserverToken = GenerateToken();
-			this.AppServiceToken = GenerateToken();
+			ID = GenerateToken();
+			HomeserverToken = GenerateToken();
+			AppServiceToken = GenerateToken();
 		}
 
 		public static string GenerateToken ()
 		{
-			return (Guid.NewGuid().ToString() + Guid.NewGuid().ToString()).Replace("-","");
+			return (Guid.NewGuid() + Guid.NewGuid().ToString()).Replace("-","");
 		}
 
-		public static ServiceRegistration FromYAML(string yaml){
+		public static ServiceRegistration FromYaml(string yaml){
 			Deserializer serial = new Deserializer();
-			ServiceRegistrationOptions opts =serial.Deserialize<ServiceRegistrationOptions>(new System.IO.StringReader(yaml));
+			ServiceRegistrationOptions opts =serial.Deserialize<ServiceRegistrationOptions>(new StringReader(yaml));
 			return new ServiceRegistration(opts);
 		}
 
-		public string ToYAML(){
+		public string ToYaml(){
 			Serializer serial = new Serializer();
-			System.IO.StringWriter writer = new System.IO.StringWriter();
+			StringWriter writer = new StringWriter();
 			serial.Serialize(writer,new {
 				id = ID,
 				url = URL,

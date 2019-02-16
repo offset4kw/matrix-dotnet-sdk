@@ -21,7 +21,6 @@ namespace Matrix.AppService
 	{
 
 		const int DEFAULT_MAXREQUESTS = 64;
-		public readonly int Port;
 		public readonly string AsUrl;
 		public readonly string HsUrl;
 		public readonly int MaximumRequests;
@@ -33,11 +32,11 @@ namespace Matrix.AppService
 
 		public readonly ServiceRegistration Registration;
 
-		private Semaphore accept_semaphore;
-		private HttpListener listener;
-		private readonly Regex urlMatcher;
-		private MatrixAPI api;
-		private string botuser_id;
+		private Semaphore _acceptSemaphore;
+		private HttpListener _listener;
+		private readonly Regex _urlMatcher;
+		private readonly MatrixAPI _api;
+		private readonly string _botuserId;
 
 		public MatrixAppservice (ServiceRegistration registration, string domain, string url = "http://localhost",int maxrequests = DEFAULT_MAXREQUESTS)
 		{
@@ -46,23 +45,23 @@ namespace Matrix.AppService
 			MaximumRequests = maxrequests;
 			Registration = registration;
 			AsUrl = registration.URL;
-			botuser_id = "@"+ registration.Localpart + ":"+Domain;
-			urlMatcher = new Regex ("\\/(rooms|transactions|users)\\/(.+)\\?access_token=(.+)", RegexOptions.Compiled | RegexOptions.ECMAScript);
+			_botuserId = "@"+ registration.Localpart + ":"+Domain;
+			_urlMatcher = new Regex ("\\/(rooms|transactions|users)\\/(.+)\\?access_token=(.+)", RegexOptions.Compiled | RegexOptions.ECMAScript);
 
-			api = new MatrixAPI (url,registration.AppServiceToken, "");
+			_api = new MatrixAPI (url,registration.AppServiceToken, "");
 
 		}
 
 		public void Run(){
-			listener = new HttpListener ();
-			listener.Prefixes.Add (AsUrl+"/rooms/");
-			listener.Prefixes.Add (AsUrl+"/transactions/");
-			listener.Prefixes.Add (AsUrl+"/users/");
-			listener.Start ();
-			accept_semaphore = new Semaphore (MaximumRequests, MaximumRequests);
-			while(listener.IsListening){
-				accept_semaphore.WaitOne ();
-				listener.GetContextAsync ().ContinueWith (OnContext);
+			_listener = new HttpListener ();
+			_listener.Prefixes.Add (AsUrl+"/rooms/");
+			_listener.Prefixes.Add (AsUrl+"/transactions/");
+			_listener.Prefixes.Add (AsUrl+"/users/");
+			_listener.Start();
+			_acceptSemaphore = new Semaphore (MaximumRequests, MaximumRequests);
+			while(_listener.IsListening){
+				_acceptSemaphore.WaitOne ();
+				_listener.GetContextAsync ().ContinueWith (OnContext);
 			}
 		}
 
@@ -79,7 +78,7 @@ namespace Matrix.AppService
 				user = "@" + user;
 				user = user + ":" + Domain;
 			} else {
-				user = botuser_id;
+				user = _botuserId;
 			}
 
 			return new MatrixClient(HsUrl,Registration.AppServiceToken,user);
@@ -87,9 +86,9 @@ namespace Matrix.AppService
 
 		private void CheckAndPerformRegistration (string user)
 		{
-			MatrixProfile profile = api.ClientProfile ("@"+user+":"+Domain);
+			MatrixProfile profile = _api.ClientProfile ("@"+user+":"+Domain);
 			if (profile == null) {
-				api.RegisterUserAsAS(user);
+				_api.RegisterUserAsAS(user);
 			}
 		}
 
@@ -97,18 +96,18 @@ namespace Matrix.AppService
 		{
 			await task;
 			HttpListenerContext context = task.Result;
-			Match match = urlMatcher.Match (context.Request.RawUrl);
+			Match match = _urlMatcher.Match (context.Request.RawUrl);
 			if (match.Groups.Count != 4) {
 				context.Response.StatusCode = (int)HttpStatusCode.BadRequest; //Invalid response
 				context.Response.Close ();
-				accept_semaphore.Release ();
+				_acceptSemaphore.Release ();
 				return;
 			}
 
 			if (match.Groups [3].Value != Registration.HomeserverToken) {
 				context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
 				context.Response.Close ();
-				accept_semaphore.Release ();
+				_acceptSemaphore.Release ();
 			}
 
 			string type = match.Groups [1].Value;
@@ -127,36 +126,34 @@ namespace Matrix.AppService
 					break;
 			}
 
+			bool exists = false;
 			if (context.Response.StatusCode == (int)HttpStatusCode.OK) {
-				if (OnAliasRequest != null && type == "rooms") {
+				if (type == "rooms") {
 					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-					bool exists;
 					string alias = Uri.UnescapeDataString(match.Groups [2].Value);
-					OnAliasRequest.Invoke (alias, out exists);
-					if (exists) {
-						context.Response.StatusCode = 200;
-					}
-				} else if (OnEvent != null && type == "transactions") {
+					OnAliasRequest?.Invoke (alias, out exists);
+				} else if (type == "transactions") {
 					byte[] data = new byte[context.Request.ContentLength64];
 					context.Request.InputStream.Read (data, 0, data.Length);
-					ASEventBatch batch = JsonConvert.DeserializeObject<ASEventBatch> (System.Text.Encoding.UTF8.GetString (data), new JSONEventConverter ());
+					ASEventBatch batch = JsonConvert.DeserializeObject<ASEventBatch> (Encoding.UTF8.GetString (data), new JSONEventConverter ());
 					foreach (MatrixEvent ev in batch.events) {
-						OnEvent.Invoke (ev);
+						OnEvent?.Invoke (ev);
 					}
-				} else if (OnUserRequest != null && type == "users") {
-					bool exists;
+				} else if (type == "users") {
 					string user = Uri.UnescapeDataString(match.Groups [2].Value);
-					OnUserRequest.Invoke (user, out exists);
+					OnUserRequest?.Invoke (user, out exists);
 					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-					if (exists) {
-						context.Response.StatusCode = 200;
-					}
+
 				}
 			}
-
+			
+			if (exists) {
+				context.Response.StatusCode = 200;
+			}
+			
 			context.Response.OutputStream.Write(new byte[2]{123,125},0,2);//{}
 			context.Response.Close ();
-			accept_semaphore.Release ();
+			_acceptSemaphore.Release ();
 		}
 	}
 }

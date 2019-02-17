@@ -36,7 +36,7 @@ namespace Matrix.Backends
 			access_token = token;
 		}
 
-		private string getPath (string apiPath, bool auth)
+		private string GetPath (string apiPath, bool auth)
 		{
 			apiPath = baseurl + apiPath;
 			if (auth) {
@@ -70,7 +70,7 @@ namespace Matrix.Backends
 		}
 
 		public MatrixRequestError Get (string apiPath, bool authenticate, out JToken result){
-			apiPath = getPath (apiPath,authenticate);
+			apiPath = GetPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.GetAsync (apiPath);
 			var res = RequestWrap(task);
 			res.Wait();
@@ -78,8 +78,14 @@ namespace Matrix.Backends
 			return res.Result.error;
 		}
 		
+		public Task<MatrixAPIResult> GetAsync(string apiPath, bool authenticate)
+		{
+			Task<HttpResponseMessage> task = client.GetAsync (GetPath (apiPath,authenticate));
+			return RequestWrap(task);
+		}
+		
 		public MatrixRequestError Delete (string apiPath, bool authenticate, out JToken result){
-			apiPath = getPath (apiPath,authenticate);
+			apiPath = GetPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.DeleteAsync(apiPath);
 			var res = RequestWrap(task);
 			res.Wait();
@@ -89,7 +95,7 @@ namespace Matrix.Backends
 
 		public MatrixRequestError Put(string apiPath, bool authenticate, JToken data, out JToken result){
 			StringContent content = new StringContent (data.ToString(Formatting.None), Encoding.UTF8, "application/json");
-			apiPath = getPath (apiPath,authenticate);
+			apiPath = GetPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
 			var res = RequestWrap(task);
 			res.Wait();
@@ -100,7 +106,7 @@ namespace Matrix.Backends
 		public Task<MatrixAPIResult> PutAsync(string apiPath, bool authenticate, JToken request)
 		{
 			StringContent content = new StringContent (request.ToString(Formatting.None), Encoding.UTF8, "application/json");
-			apiPath = getPath (apiPath,authenticate);
+			apiPath = GetPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PutAsync(apiPath,content);
 			return RequestWrap(task);
 		}
@@ -117,7 +123,7 @@ namespace Matrix.Backends
 				content.Headers.Add(header.Key,header.Value);
 			}
 
-			apiPath = getPath (apiPath,authenticate);
+			apiPath = GetPath (apiPath,authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath,content);
 			var res = RequestWrap(task);
 			res.Wait();
@@ -143,7 +149,7 @@ namespace Matrix.Backends
 				content.Headers.Add(header.Key, header.Value);
 			}
 
-			apiPath = getPath(apiPath, authenticate);
+			apiPath = GetPath(apiPath, authenticate);
 			Task<HttpResponseMessage> task = client.PostAsync(apiPath, content);
 			var res = RequestWrap(task);
 			res.Wait();

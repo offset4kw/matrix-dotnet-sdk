@@ -7,6 +7,7 @@ namespace Matrix.Backends
 	public interface IMatrixAPIBackend
 	{
 		MatrixRequestError Get  (string apiPath, bool authenticate, out JToken result);
+		Task<MatrixAPIResult> GetAsync  (string apiPath, bool authenticate);
 		MatrixRequestError Delete (string apiPath, bool authenticate, out JToken result);
 		MatrixRequestError Post (string apiPath, bool authenticate, JToken request, out JToken result);
 		MatrixRequestError Put (string apiPath, bool authenticate, JToken request, out JToken result);

@@ -72,7 +72,7 @@ namespace Matrix
 			int txnId = rng.Next (int.MinValue, int.MaxValue);
 			JObject msgData = ObjectToJson (message);
 			// Send messages in order.
-			eventSendMutex.WaitOne();
+			// XXX: Mutex was removed because it's not task safe, need another mechanism.
 			while (true)
 			{
 				try
@@ -82,7 +82,7 @@ namespace Matrix
 					);
 					if (res.error.IsOk)
 					{
-						eventSendMutex.ReleaseMutex();
+						//eventSendMutex.ReleaseMutex();
 						return res.result["event_id"].ToObject<string>();
 					}
 
@@ -99,7 +99,6 @@ namespace Matrix
 				}
 				catch (Exception)
 				{
-					eventSendMutex.ReleaseMutex();
 					throw;
 				}
 			}
@@ -128,11 +127,23 @@ namespace Matrix
 	    {
 		    ThrowIfNotSupported();
 		    MatrixRequestError error = mbackend.Get($"/_matrix/client/r0/rooms/{roomId}/state", true, out var result);
-		    MatrixEvent[] events = JsonConvert.DeserializeObject<MatrixEvent[]> (result.ToString (), event_converter);
 		    if (!error.IsOk) {
 			    throw new MatrixException (error.ToString());
 		    }
-		    return events;
+			return JsonConvert.DeserializeObject<MatrixEvent[]> (result.ToString (), event_converter);
+	    }
+
+	    [MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer,
+		    "get-matrix-client-r0-rooms-roomid-state-eventtype")]
+	    public MatrixEventContent GetRoomStateType (string roomId, string type)
+	    {
+		    ThrowIfNotSupported();
+		    MatrixRequestError error = mbackend.Get($"/_matrix/client/r0/rooms/{roomId}/state/{type}/", true, out var result);
+		    if (!error.IsOk) {
+			    throw new MatrixException (error.ToString());
+		    }
+
+		    return event_converter.GetContent(result as JObject, new JsonSerializer(), type);
 	    }
 
 	    [MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer,
@@ -200,6 +211,5 @@ namespace Matrix
 			    throw new MatrixException (error.ToString());
 		    }
 	    }
-
     }
 }

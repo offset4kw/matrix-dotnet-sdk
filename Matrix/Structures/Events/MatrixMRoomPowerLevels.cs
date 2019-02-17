@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Matrix.Structures
 {
@@ -15,7 +16,16 @@ namespace Matrix.Structures
 		public int ban;
 		public int kick;
         public Dictionary<string,int> events = new Dictionary<string, int>();
+		
+		public int UserPL(string userId) {
+			if (users.ContainsKey(userId))
+			{
+				return users[userId];
+			}
 
+			return users_default;
+		}
 	}
+	
 }
 

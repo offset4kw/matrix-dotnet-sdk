@@ -60,7 +60,7 @@ namespace Matrix
 			return objectType == typeof(MatrixEvent) || objectType == typeof(MatrixEventContent);
 		}
 
-		public Type MessageContentType(string type){
+		public Type MessageContentType(string type) {
 			Type otype;
 			if (messageContentTypes.TryGetValue (type, out otype)) {
 				return otype;
@@ -72,8 +72,10 @@ namespace Matrix
 		public MatrixEventContent GetContent(JObject jobj,JsonSerializer serializer,string type){
 			Type T;
 			if (!contentTypes.TryGetValue (type, out T)) {
-				//Console.WriteLine ("Unknown Event:" + type);
-				return null;
+				return new MatrixEventContent
+				{
+					mxContent = jobj
+				};
 			}
 			try
 			{
@@ -121,8 +123,7 @@ namespace Matrix
 			if (objectType == typeof(MatrixEventContent))
 			{
 				// Populate 
-				var ev = new MatrixEventContent();
-				ev.mxContent = jObject;
+				var ev = GetContent(jObject, serializer, "");
 				return ev;
 			}
 			return null;

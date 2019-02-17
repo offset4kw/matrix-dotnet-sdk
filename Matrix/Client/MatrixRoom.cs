@@ -184,7 +184,7 @@ namespace Matrix.Client
             {
                 JoinRule = ((MatrixMRoomJoinRules) evt.content).join_rule;
             }
-            else if (t == typeof(MatrixMRoomJoinRules))
+            else if (t == typeof(MatrixMRoomPowerLevels))
             {
                 PowerLevels = ((MatrixMRoomPowerLevels) evt.content);
             }
@@ -424,6 +424,15 @@ namespace Matrix.Client
         public void SetTag(string tagName, double order = 0)
         {
             api.RoomPutTag(ID, tagName, order);
+        }
+
+        public MatrixEventContent GetStateEvent (string type)
+        {
+            var evContent = api.GetRoomStateType(ID, type);
+            MatrixEvent fakeEvent = new MatrixEvent();
+            fakeEvent.content = evContent;
+            FeedEvent(fakeEvent);
+            return evContent;
         }
 
     }

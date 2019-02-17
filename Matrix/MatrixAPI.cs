@@ -167,7 +167,6 @@ namespace Matrix
 		}
 
 		private void ProcessSync(MatrixSync syncData){
-			syncToken = syncData.next_batch;
 			//Grab data from rooms the user has joined.
 			foreach (KeyValuePair<string,MatrixEventRoomJoined> room in syncData.rooms.join)
 			{
@@ -177,7 +176,7 @@ namespace Matrix
             {
 	            SyncInviteEvent?.Invoke (room.Key, room.Value);
             }
-
+			syncToken = syncData.next_batch;
 		}
 
 		[MatrixSpec(EMatrixSpecApiVersion.R001, EMatrixSpecApi.ClientServer, "get-matrix-client-versions")]

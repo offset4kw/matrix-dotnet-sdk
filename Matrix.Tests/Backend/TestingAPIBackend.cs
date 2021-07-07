@@ -43,6 +43,11 @@ namespace Matrix.Backends
 		public void SetAccessToken(string access_token) {
 
         }
-	}
+
+        public Task<MatrixAPIResult> GetAsync(string apiPath, bool authenticate)
+        {
+            return Task.FromResult(default(MatrixAPIResult));
+        }
+    }
 }
 

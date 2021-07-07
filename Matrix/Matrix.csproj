@@ -3,7 +3,7 @@
     <OutputType>Library</OutputType>
     <PackageId>Half-Shot.Matrix</PackageId>
     <AssemblyName>Matrix</AssemblyName>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <Version>0.1.5</Version>
     <Authors>Half-Shot</Authors>
     <Owners>Half-Shot</Owners>
